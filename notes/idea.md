@@ -1,13 +1,30 @@
-1. Sequence: Only a call may not invoke a crash, it can trigger that only in certain kernel state, which created by prvious calls. 
-   - We can not find a effective way to find the pattern that effectively generate the 'functional crash sequence'. So Healer introduce 'learning relation' to improve coverage so as to approach 'certain kernel state'.
+Questions:
 
-2. It's dangerous to call functions or access data structs without validate. There ofen happen crash. 
+1. 
 
+## mutation strategy
 
+Build a graph for extracted syscall relations from LLM.
 
+#### Stage 1: sequance size 0 -> 1
 
+Selected serveral syscalls as init sequances according to some algos. 
 
-1. 如何保证大模型的test cases quality.
-2. 使用大模型去逼近healer的idea，并设计一个能够让大模型学习的机制。
-3. trade-off between performance and quality.
+> E.g. select syscalls that have the highest dgree or smallest.
+
+#### Stage 2: n -> n + 1
+
+Refer to healer.
+
+> N: syscall number
+
+The time complexity of add a syscall to a sequence: 
+
+$O(SubSequanceAVGSize*N)$ -> $O(·*AVGDegree)$
+
+If it is a static graph (won't change in fuzzing process), it can be more faster by using PriorityQueue:
+
+$O(SubSequanceAVGSize)$
+
+> Considering a penalty and reward mechanism by leveraging coverage feedback. May it can be apply for seeds selection and input execution order.
 
