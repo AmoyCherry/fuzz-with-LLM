@@ -85,8 +85,6 @@ An excution path represent by a list of variable occurrences e.g. V1 -> V2 -> V1
 
 *When execution paths alter after input perturbation, PATA utilizes a matching algorithm to determine which constraint variable occurrence after perturbation matches with a constraint variable occurrence in the original path. Matched pairs are marked with Xin the ﬁgure.*
 
-
-
 ### Basic Idea
 
 1. Collect RVS of a excution path. 
@@ -109,7 +107,15 @@ Improve the accuracy of locate critical bytes for each variable occurrence with 
 
 ## AFLFast - CCS 2016
 
+> Effeciency: find more bugs in same time;
+>
+> Effectiveness: an advance fuzzer (seeds + mutator) that find hidden bugs which previous can't do so;
+
+This paper work on the energy (**power schedule**: the number of mutated inputs from a seed in one operation) and inputs execution order (**search strategy**). 
+
 ### limitations of conventional methods (AFL) 
+
+"In some cases, AFL might assign signiﬁcantly more than the minimum energy required to discover a new and interesting path; in other cases, AFL might assign not enough energy."
 
 <img src="../assets/aflfast-1.jpeg" alt="img" style="zoom:80%;" />
 
@@ -119,7 +125,7 @@ Improve the accuracy of locate critical bytes for each variable occurrence with 
 
 #### defects
 
-the two methods in line 7 and 8 could be improved.
+This paper improved the two methods in line 7 and 8.
 
 1. traditional methods dont consider the number of gen-ed inputs (energy) , so ofen cause too much `energe` is assigned for some crash paths which don't required such more, and insufficient for other crash paths which need more. 
 2. traditional methods dont consider the order that choose seeds to mutate and fuzz from the queue.
@@ -140,7 +146,7 @@ make the inputs gen-ed from the low density region can be excute first.
 >
 > the meaning of path $i$ seems equal to 'seed'.
 
-#### Power Schedules
+#### Power Schedule
 
 ##### AFL
 
