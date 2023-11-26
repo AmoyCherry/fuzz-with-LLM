@@ -8,7 +8,7 @@
 
 ### Design
 
-![image-20211129200131315](/Users/wangwenzhi/Downloads/image-20211129200131315.png)
+![img](../assets/healer-1.png)
 
 #### static learning
 
@@ -27,11 +27,11 @@ analyze return values and params by detecting syzlang files.
 
 #### relation table-guided generation and mutation
 
-<img src="/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231123225614371.png" alt="image-20231123225614371" style="zoom:67%;" />
+![img](../assets/healer-2.png)
 
 At the begining, the relation infomation has not been colletcted, so there is a high probability of $a$ to choose a random call.
 
-![img](https://pic1.zhimg.com/80/v2-f5fe88e77e995073e18b5d9b829f07b4_1440w.webp)
+![img](../assets/healer-2.png)
 
 ## PATA - S&P 2022
 
@@ -81,9 +81,7 @@ An excution path represent by a list of variable occurrences e.g. V1 -> V2 -> V1
 
 ### Motivition and Example
 
-
-
-![image-20231018220141736](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231018220141736.png)
+![img](../assets/pata-1.png)
 
 *When execution paths alter after input perturbation, PATA utilizes a matching algorithm to determine which constraint variable occurrence after perturbation matches with a constraint variable occurrence in the original path. Matched pairs are marked with Xin the ﬁgure.*
 
@@ -113,11 +111,11 @@ Improve the accuracy of locate critical bytes for each variable occurrence with 
 
 ### limitations of conventional methods (AFL) 
 
-![IMG_8598](/Users/wangwenzhi/Downloads/IMG_8598.jpeg)
+![img](../assets/aflfast-1.jpeg)
 
 #### AFL algorithm
 
-![image-20231029223405640](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231029223405640.png)
+![img](../assets/aflfast-2.png)
 
 #### defects
 
@@ -154,7 +152,7 @@ $B$ : a constant to reduce the gen-ed inputs size.
 
 ##### Cut-Off Exponential (COE)
 
-![image-20231029230029548](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231029230029548.png)
+![img](../assets/aflfast-3.png)
 
 
 
@@ -163,15 +161,13 @@ $B$ : a constant to reduce the gen-ed inputs size.
 1. inversely proportional to the amount of fuzz $f(i)$ that exercises path $i$ includes $f(i) > u$.
 2. if $t_i$ has been picked up many times (with a high $s(i)$) we could be more confident that $i$ live in a low-density region.
 
-![image-20231029230044403](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231029230044403.png)
+![img](../assets/aflfast-4.png)
 
 
 
 Understanding the term *Fast*
 
 AFLFast can only explore bugs that AFL can and just finds same number bugs in a shorter time, since AFLFast doesn't modify the AFL'mutator. This is called *merely impact AFL’s efficiency (i.e., #paths explored per unit time), not its effectiveness (i.e., #paths explored in expectation).*
-
-
 
 ## FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing - SCSET 2018
 
@@ -205,7 +201,7 @@ Fast-syzkaller can only insert reasonable syscalls with high priorities after th
 
 #### the number of reported vulnerabilities in the Windows 10 kernel by category
 
-![image-20231105112511615](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231105112511615.png)
+![img](../assets/review1-1.png)
 
 #### Vulnerability Discovery Techniques
 
@@ -279,9 +275,9 @@ Learning (explicit and implicit) dependencies between syscalls by RL with covera
 
 ### Results
 
-![image-20231125224446633](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231125224446633.png)
+![img](../assets/rl-1.png)
 
-![image-20231125224558341](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231125224558341.png)
+![img](../assets/rl-2.png)
 
 ### Explicit dependencies
 

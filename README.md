@@ -18,13 +18,13 @@ Q1: We can use LLM tools to get syscall relations. But there is a concern need t
 
 - make-sense sequence for chatGPT:
 
-  ![image-20231012224154495](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231012224154495.png)
+  ![img](./assets/gpt-1.png)
 
 - two examples to get relation
 
-  ![image-20231012224443565](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231012224443565.png)
+  ![img](./assets/gpt-2.png)
 
-  ![image-20231012224642023](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231012224642023.png)
+  ![img](./assets/gpt-3.png)
 
   
 

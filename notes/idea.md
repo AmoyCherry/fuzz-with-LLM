@@ -1,7 +1,3 @@
-Questions:
-
-1. 
-
 ## mutation strategy
 
 Build a graph for extracted syscall relations from LLM.

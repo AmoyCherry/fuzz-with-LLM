@@ -6,13 +6,11 @@
 >
 > [fuzzing documents from google](https://github.com/google/fuzzing)
 
-
-
-## Efficient Ways
+## Efficient Methods
 
 [A entry-level guid: go beyond coverage-guided fuzzing](https://i.blackhat.com/USA-19/Wednesday/us-19-Metzman-Going-Beyond-Coverage-Guided-Fuzzing-With-Structured-Fuzzing.pdf)
 
-![image-20231008220701992](/Users/wangwenzhi/Library/Application Support/typora-user-images/image-20231008220701992.png)
+![img](../assets/learning-1.png)
 
 ### coverage-guided mutation-based fuzzers
 
