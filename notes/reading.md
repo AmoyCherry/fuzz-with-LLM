@@ -33,78 +33,6 @@ At the begining, the relation infomation has not been colletcted, so there is a 
 
 <img src="../assets/healer-3.png" alt="img" style="zoom:67%;" />
 
-## PATA - S&P 2022
-
-> [PATA: Fuzzing with Path Aware Taint Analysis](http://www.wingtecher.com/themes/WingTecherResearch/assets/papers/sp22.pdf)
-
-### Goals
-
-Enhance the efficiency that identify and leverage the influencing input bytes (critical bytes) when encountered loops.
-
-### BG
-
-#### the inﬂuencing input bytes
-
-The specific bytes or portions of the input data that have the potential to <u>affect the behavior of the target program</u>.
-
-- passing through different if-conditions and trigger different code paths;
-- uncover vulnerabilities or cause unexpected behavior.
-
-Benefits: helps guide the fuzzer towards exploring different program paths and increasing the chances of discovering vulnerabilities.
-
-**Follow up:**
-
-*How to use it to increase the chance of uncover vnbs?*
-
-- guided the mutation process, i.e. focus on operating the influencing input bytes.
-
-
-
-#### variable occurrence
-
-```c++
-// define variable
-int name = get();
-
-// occurrence 1
-if (name ...) { }
-
-// occurrence 2
-func(C)
-```
-
-
-
-#### RVS
-
-An excution path represent by a list of variable occurrences e.g. V1 -> V2 -> V1.
-
-### Motivition and Example
-
-<img src="../assets/pata-1.png" alt="img" style="zoom:80%;" />
-
-*When execution paths alter after input perturbation, PATA utilizes a matching algorithm to determine which constraint variable occurrence after perturbation matches with a constraint variable occurrence in the original path. Matched pairs are marked with Xin the ﬁgure.*
-
-### Basic Idea
-
-1. Collect RVS of a excution path. 
-   1. Collect occurrences of each variable;   
-   2. Gen a original input;
-   3. Excute input and records values into RVS along the path. 
-2. Perturb input bytes and records a list of new values into RVS.
-   - Maybe not every variable in RVS could records a new value since a potential excution path could be explored.
-
-3. Match the variable occurrences between two RVSs to check if a new excution path is explored.
-4. Compare the values between the matched occurrences to get a list of whether the altered byte is critical to every occurrence (nodes of a path: V1 -> V2 -> V1).
-
-
-
-### Comments
-
-Improve the accuracy of locate critical bytes for each variable occurrence with limited memory cost added compare to conventional methods.
-
-
-
 ## AFLFast - CCS 2016
 
 > Effeciency: find more bugs in same time;
@@ -174,6 +102,74 @@ $B$ : a constant to reduce the gen-ed inputs size.
 Understanding the term *Fast*
 
 AFLFast can only explore bugs that AFL can and just finds same number bugs in a shorter time, since AFLFast doesn't modify the AFL'mutator. This is called *merely impact AFL’s efficiency (i.e., #paths explored per unit time), not its effectiveness (i.e., #paths explored in expectation).*
+
+## PATA - S&P 2022
+
+> [PATA: Fuzzing with Path Aware Taint Analysis](http://www.wingtecher.com/themes/WingTecherResearch/assets/papers/sp22.pdf)
+
+### Goals
+
+Enhance the efficiency that identify and leverage the influencing input bytes (critical bytes) when encountered loops.
+
+### BG
+
+#### the inﬂuencing input bytes
+
+The specific bytes or portions of the input data that have the potential to <u>affect the behavior of the target program</u>.
+
+- passing through different if-conditions and trigger different code paths;
+- uncover vulnerabilities or cause unexpected behavior.
+
+Benefits: helps guide the fuzzer towards exploring different program paths and increasing the chances of discovering vulnerabilities.
+
+**Follow up:**
+
+*How to use it to increase the chance of uncover vnbs?*
+
+- guided the mutation process, i.e. focus on operating the influencing input bytes.
+
+
+
+#### variable occurrence
+
+```c++
+// define variable
+int name = get();
+
+// occurrence 1
+if (name ...) { }
+
+// occurrence 2
+func(C)
+```
+
+
+
+#### RVS
+
+An excution path represent by a list of variable occurrences e.g. V1 -> V2 -> V1.
+
+### Motivition and Example
+
+<img src="../assets/pata-1.png" alt="img" style="zoom:80%;" />
+
+*When execution paths alter after input perturbation, PATA utilizes a matching algorithm to determine which constraint variable occurrence after perturbation matches with a constraint variable occurrence in the original path. Matched pairs are marked with Xin the ﬁgure.*
+
+### Basic Idea
+
+1. Collect RVS of a excution path. 
+   1. Collect occurrences of each variable;   
+   2. Gen a original input;
+   3. Excute input and records values into RVS along the path. 
+2. Perturb input bytes and records a list of new values into RVS.
+   - Maybe not every variable in RVS could records a new value since a potential excution path could be explored.
+
+3. Match the variable occurrences between two RVSs to check if a new excution path is explored.
+4. Compare the values between the matched occurrences to get a list of whether the altered byte is critical to every occurrence (nodes of a path: V1 -> V2 -> V1).
+
+### Comments
+
+Improve the accuracy of locate critical bytes for each variable occurrence with limited memory cost added compare to conventional methods.
 
 ## FastSyzkaller: Improving Fuzz Efficiency for Linux Kernel Fuzzing - SCSET 2018
 
