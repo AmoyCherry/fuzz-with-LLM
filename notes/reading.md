@@ -31,7 +31,7 @@ analyze return values and params by detecting syzlang files.
 
 At the begining, the relation infomation has not been colletcted, so there is a high probability of $a$ to choose a random call.
 
-<img src="../assets/healer-2.png" alt="img" style="zoom:67%;" />
+<img src="../assets/healer-3.png" alt="img" style="zoom:67%;" />
 
 ## PATA - S&P 2022
 

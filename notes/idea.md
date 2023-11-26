@@ -4,13 +4,13 @@ Build a graph for extracted syscall relations from LLM.
 
 #### Stage 1: sequance size 0 -> 1
 
-Selected serveral syscalls as init sequances according to some algos. 
+Selected serveral syscalls as init sequences according to some algos. 
 
 > E.g. select syscalls that have the highest dgree or smallest.
 
 #### Stage 2: n -> n + 1
 
-Refer to healer.
+Refer to [healer](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#relation-table-guided-generation-and-mutation).
 
 > N: syscall number
 
