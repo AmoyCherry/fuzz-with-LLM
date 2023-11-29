@@ -1,3 +1,19 @@
+> Category:
+>
+> [Healer - SOSP 2021](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#healer---sosp-2021)
+>
+> [AFLFast - CCS 2016](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#aflfast---ccs-2016)
+>
+> [PATA - S&P 2022](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#pata---sp-2022)
+>
+> [RLTrace - ISC 2023](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#rltrace-synthesizing-high-quality-system-call-traces-for-os-fuzz-testing---isc-2023)
+>
+> [A Systemic Review of Kernel Fuzzing](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#a-systemic-review-of-kernel-fuzzing)
+>
+> [FastSyzkaller](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#fastsyzkaller-improving-fuzz-efficiency-for-linux-kernel-fuzzing---scset-2018)
+
+
+
 ## Healer - SOSP 2021
 
 > [HEALER - Relation Learning Guided Kernel Fuzzing](http://www.wingtecher.com/themes/WingTecherResearch/assets/papers/healer-sosp21.pdf)
