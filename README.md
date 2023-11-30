@@ -34,17 +34,32 @@ Q1: We can use LLM tools to get syscall relations. But there is a concern need t
 
 Q2: How to deal with the quality of seeds gen-ed by LLM?
 
-- LLM can discover explicit relation between syscalls but not good at implicit ones. But the implicit realtion dont show a powerful influence from [RLTrace](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#rltrace-synthesizing-high-quality-system-call-traces-for-os-fuzz-testing---isc-2023).
+- LLM can discover explicit relation between syscalls but not good at implicit ones. But the implicit realtions dont show a powerful influence from [RLTrace](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#rltrace-synthesizing-high-quality-system-call-traces-for-os-fuzz-testing---isc-2023).
 
 
 
-Q3: Is it possible and neccesary to make benefits by leverage/combine LLM during the fuzzing process?
+Q3-1: Are the run time sessions with LLM supposed to be a bottleneck of fuzzing (need to be alleviate)? 
 
-> How does the LLM-based mutator boost the coverage exploraton? 
+1). the resources cost.  
+
+2). the throughput (the delay time of making answers).
+
+
+
+Q3-2: How to define (Q, K, V) of the SyzLLM? Can we extract most of the answers and load them as cache?
+
+token, sentence, paragraph
+
+
+
+Q3-3: Is it possible and neccesary to make benefits by leverage/combine LLM during the fuzzing process?
+
+> If we can't iterate all the Qs, we have to use the run time sessions.
+>
+> How does the LLM-based mutator boost the coverage exploraton?
 >
 > How does the LLM-based mutator handle the inputs feedback?
 
 
 
-Q4: May the project's innovation and workload be sufficient?
-
+Q5: What resources can be the training text?
