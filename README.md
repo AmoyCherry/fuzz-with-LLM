@@ -8,11 +8,11 @@
 
 ## Goals
 
-By leveraging LLM to Generate and systhesis high-quality seeds (syscall sequences) which better than manual-ruled ones from original syzkaller.
+By **TRAINING** an LLM to Generate and systhesis high-quality seeds (syscall sequences) which better than manual-ruled ones from the original syzkaller.
 
 ### Questions
 
-Q1: We can use LLM tools to get syscall relations. But there is a concern need to be addressed.
+#### Q1: We can use LLM tools to get syscall relations. But there is a concern need to be addressed.
 
 - Totally random sequences are not expected to get efficiency. And make-sense sequences can get a more higher coverage, but it seems like an 'expected behavior' so it may not be easy to find bugs as well. We should add some 'potencial malicious' syscalls into make-sence sequence so that get unexpected crashes. Or follow relation-learning idea from [healer](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#healer---sosp-2021).
 
@@ -32,34 +32,30 @@ Q1: We can use LLM tools to get syscall relations. But there is a concern need t
 
 
 
-Q2: How to deal with the quality of seeds gen-ed by LLM?
+#### Q2: How to deal with the quality of seeds gen-ed by LLM?
 
 - LLM can discover explicit relation between syscalls but not good at implicit ones. But the implicit realtions dont show a powerful influence from [RLTrace](https://github.com/AmoyCherry/fuzz-with-LLM/blob/main/notes/reading.md#rltrace-synthesizing-high-quality-system-call-traces-for-os-fuzz-testing---isc-2023).
 
 
 
-Q3-1: Are the run time sessions with LLM supposed to be a bottleneck of fuzzing (need to be alleviate)? 
+#### Q3-1: Are the run time sessions with LLM supposed to be a bottleneck of fuzzing (need to be alleviate)? 
 
-1). the resources cost.  
+1). the hardware resources cost.  
 
 2). the throughput (the delay time of making answers).
 
 
 
-Q3-2: How to define (Q, K, V) of the SyzLLM? Can we extract most of the answers and load them as cache?
-
-token, sentence, paragraph
+#### Q3-3: ~~Is it possible and neccesary to make benefits by leverage/combine LLM during the fuzzing process?~~ How to boot performance for run time session with LLM?
 
 
 
-Q3-3: Is it possible and neccesary to make benefits by leverage/combine LLM during the fuzzing process?
-
-> If we can't iterate all the Qs, we have to use the run time sessions.
->
-> How does the LLM-based mutator boost the coverage exploraton?
->
-> How does the LLM-based mutator handle the inputs feedback?
+#### Q4: May there be some resources that could be training text before fuzzing?
 
 
 
-Q5: What resources can be the training text?
+Q5: We should choose an open-source model.
+
+- LLaMa;
+- 
+

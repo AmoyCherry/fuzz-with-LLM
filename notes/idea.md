@@ -1,3 +1,7 @@
+## Theory
+
+Healer shows the impact of the relation learning-based CGF. But the transformer can be better than it in two aspects 1) training with position info of tokens 2) more accurate probability distribution.
+
 ## mutation strategy
 
 Build a graph for extracted syscall relations from LLM.
