@@ -1,8 +1,42 @@
+## Choose a transformer
+
+> ### Requirements
+>
+> 1. balance between over- and underfitting
+>    - the token (vocabulary) size of syscalls ranges from 1.0k to 1.5k.
+>    - "If the model’s performance on the validation data starts to degrade while the training performance remains high, it’s a signal that overfitting may be occurring. Adjustments can help rein in the overfitting tendencies."
+
+| LLM AI Model | Parameters   | Year |
+| :----------- | :----------- | :--- |
+| TinyBERT4    | 14.5 million | 2020 |
+| BERT         | 340 million  | 2018 |
+| GPT-2        | 1.5 billion  | 2019 |
+| Meena        | 2.6 billion  | 2020 |
+| GPT-3        | 175 billion  | 2020 |
+| LaMDA        | 137 billion  | 2022 |
+| BLOOM        | 176 billion  | 2022 |
+
+
+
+**Knowledge Transfer**
+
+**Pre-trained distillation**
+
+
+
 ## Theory
 
 Healer shows the impact of the relation learning-based CGF. But the transformer can be better than it in two aspects 1) training with position info of tokens 2) more accurate probability distribution.
 
 > Compared to state-of-the-art kernel fuzzers such as **Syzkaller** and **Moonshine**, HEALER improves branch coverage by **28%** and **21%**, while achieving a speedup of **2.2×** and **1.8×**, respectively. In addition, HEALER detected 218 vulnerabilities, **33** of which are previously unknown and have been confirmed by the corresponding kernel maintainers.
+
+mooshine transparent-computing
+
+less parameters 
+
+过拟合问题
+
+收集细分模块(network, filesystem)的syscalls
 
 ## mutation strategy
 
