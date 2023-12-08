@@ -21,12 +21,20 @@ NOTE:
 
 ### 1.2 Syzkaller
 
-download corpus.db from google drive
+Download corpus.db from [google drive](https://groups.google.com/g/syzkaller/c/77ObybwNnig?pli=1).
 
-### 1.3 parse corpus.db to syzkaller inputs
+### 1.3 drapa (To be start)
+
+https://github.com/darpa-i2o/Transparent-Computing
+
+### 1.4 Parse corpus.db to split token files
+
+A trace in corpus.db looks like below. It's consist of several syscalls with arguments (tokens) and we get the number of **120k** tokens now.
+
+**The format of the tokens need a explanation.**
+
+![token](../assets/token.png)
 
 ### 2. Train a tokenizer
 
-### 3. Tokenize the dataset
-
-### 4. Train the model
+### 3. Train the model

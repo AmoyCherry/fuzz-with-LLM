@@ -1,5 +1,6 @@
 package main
 
 func main() {
-	LoadCorpus()
+	parser := NewParser()
+	parser.Parse()
 }
