@@ -18,13 +18,13 @@ By **TRAINING** an LLM to Generate and systhesis high-quality seeds (syscall seq
 
 - make-sense sequence for chatGPT:
 
-  <img src="./assets/gpt-1.png" alt="img" style="zoom: 50%;" />
+  <img src="./documents/assets/gpt-1.png" alt="img" style="zoom: 50%;" />
 
 - two examples to get relation
 
-  <img src="./assets/gpt-2.png" alt="img" style="zoom: 50%;" />
+  <img src="./documents/assets/gpt-2.png" alt="img" style="zoom: 50%;" />
 
-  <img src="./assets/gpt-3.png" alt="img" style="zoom: 50%;" />
+  <img src="./documents/assets/gpt-3.png" alt="img" style="zoom: 50%;" />
 
   
 
