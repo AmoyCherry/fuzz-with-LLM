@@ -12,9 +12,10 @@ type Parser struct {
 }
 
 const TokenFilePath = "./tokens/tokens_"
+const DBCorpusPath = "./parser/corpus.db"
 
 func NewParser() *Parser {
-	corpusDB, err := db.Open("./corpus.db", true)
+	corpusDB, err := db.Open(DBCorpusPath, true)
 	if err != nil {
 		if corpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)
@@ -42,7 +43,6 @@ func (parser *Parser) Parse() {
 			tokenCount = 0
 			buffer = ""
 		}
-
 	}
 	parser.WriteToFile(fileCount, &buffer)
 }
