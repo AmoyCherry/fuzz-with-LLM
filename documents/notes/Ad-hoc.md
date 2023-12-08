@@ -1,3 +1,15 @@
+Knowledge Transfer
+
+Pre-trained distillation
+
+mooshine transparent-computing
+
+train by different modules (file, process, ...)
+
+------
+
+
+
 ## analyze
 
 1. Fuzzing is to generate a unexpected syscall sequence to hit a problem scenario which developer did not find. So a reasonable/make sence sequence may not be efficient? 
