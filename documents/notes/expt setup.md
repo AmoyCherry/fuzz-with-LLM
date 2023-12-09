@@ -3,7 +3,6 @@
 > ### Requirements
 >
 > 1. balance between over- and underfitting
->    - The token size is around **120k** now.
 >    - "If the model’s performance on the validation data starts to degrade while the training performance remains high, it’s a signal that overfitting may be occurring."
 
 | LLM AI Model | Parameters       | Year |
@@ -51,7 +50,7 @@ https://github.com/darpa-i2o/Transparent-Computing
 
 ### 1.4 Parse corpus.db to split token files
 
-A trace in corpus.db looks like below. It's consist of several syscalls with arguments (tokens) and we get the number of **120k** tokens now.
+A trace in corpus.db looks like below. It's consist of several syscalls with arguments (tokens) and we get the number of **120k** sequences now.
 
 **The format of the tokens need a explanation.**
 
