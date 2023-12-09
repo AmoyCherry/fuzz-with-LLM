@@ -48,7 +48,7 @@ Download corpus.db from [google drive](https://groups.google.com/g/syzkaller/c/7
 
 https://github.com/darpa-i2o/Transparent-Computing
 
-### 1.4 Parse corpus.db to split token files
+### 1.4 Parse corpus.db to token files
 
 A trace in corpus.db looks like below. It's consist of several syscalls with arguments (tokens) and we get the number of **120k** sequences now.
 
