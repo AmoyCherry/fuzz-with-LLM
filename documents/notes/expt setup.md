@@ -44,7 +44,7 @@ NOTE:
 
 Download corpus.db from [google drive](https://groups.google.com/g/syzkaller/c/77ObybwNnig?pli=1).
 
-### 1.3 drapa (To be start)
+### 1.3 darpa (To be start)
 
 https://github.com/darpa-i2o/Transparent-Computing
 
