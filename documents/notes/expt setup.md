@@ -58,12 +58,23 @@ A trace in corpus.db looks like below. It's consist of several syscalls with arg
 ![token](../assets/token.png)
 
 ### 2. Train a tokenizer
-Syztokenzier is different from other tokenizers because we already split the text into tokens (separate each syscall with \n in token files). We can get these token files by `Parser` and `Corpus.db`, and train a
+Syztokenzier is different from other tokenizers because we already split the text into tokens (separate each syscall with \n in token files), so we are not expected to do word segmentation in the process of training. 
+
+We can get these token files by `Parser` and `Corpus.db`, and train a tokenizer for syscalls as below.
+
 ```python
 bert = BertTokenizerFast('vocab.txt')
 bert.save_pretrained(ModelPath)
 ```
 
+For now, we can tokenizer a syscall sequence.
+
+![token](../assets/tokenizer-1.png)
+
+![token](../assets/tokenizer-2.png)
+
 ### 3. Train the model
 
-so the `tokenize` function should not to do word segmentation.
+3.1 Building the DataLoader 
+
+3.2 Training
