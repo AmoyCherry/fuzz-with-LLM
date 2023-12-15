@@ -8,14 +8,18 @@ ModelPath = "tokenizer"
 
 # select a old_tokenizer by set 'Tokenizer_str'
 BertTokenizerFast_str = "BertTokenizerFast"
-BertWordPieceTokenizer_str = "BertWordPieceTokenizer"
-BertTokenizer_str = "BertTokenizer"
 Tokenizer_str = BertTokenizerFast_str
 
 TokenFilePath = [str(x) for x in Path("./tokens/").glob('**/*.txt')]
 
 
-class TokenTrainer:
+def batch_iterator():
+    for i in Path("./tokens/").glob('**/*.txt'):
+        file = open(i)
+        yield file.read().splitlines()
+
+
+class SyzTokenizerTrainer:
     def __init__(self, _tokenizer):
         self.tokenizer_str = _tokenizer
 
@@ -23,29 +27,6 @@ class TokenTrainer:
         if self.tokenizer_str == BertTokenizerFast_str:
             bert = BertTokenizerFast('vocab.txt')
             bert.save_pretrained(ModelPath)
-        elif self.tokenizer_str == BertWordPieceTokenizer_str:
-            tokenizer = BertWordPieceTokenizer("./tokens/tokens_1.txt")
-            # tokenizer.train(TokenFilePath)
-            tokenizer.save_model(ModelPath)
-        elif self.tokenizer_str == BertTokenizer_str:
-            tokenizer = BertTokenizer("./tokens/tokens_1.txt")
-            tokenizer.save_pretrained(ModelPath)
-
-            sentence = ''
-            words = []
-            with open("./tokens/tokens_1.txt") as file:
-                words = file.readlines()[:10]
-            for word in words:
-                sentence += word.split('\n')[0] + ' '
-            new_tokenizer = BertTokenizer.from_pretrained('tokenizer')
-            print(sentence)
-            print(new_tokenizer.tokenize(sentence))
-            print(tokenizer.tokenize(sentence))
-
-    def batch_iterator(self):
-        for i in Path("./tokens/").glob('**/*.txt'):
-            file = open(i)
-            yield file.read().splitlines()
 
 
 class SyzTokenizer:
@@ -75,7 +56,7 @@ class Dataset(torch.utils.data.Dataset):
 
 if __name__ == "__main__":
     if Path("tokenizer").exists() is False:
-        tokenTrainer = TokenTrainer(Tokenizer_str)
+        tokenTrainer = SyzTokenizerTrainer(Tokenizer_str)
         tokenTrainer.train()
 
     syzTokenizer = SyzTokenizer()
