@@ -12,9 +12,10 @@ type Parser struct {
 }
 
 const TokenFilePath = "./tokens/tokens_"
+const DBCorpusPath = "./parser/corpus.db"
 
 func NewParser() *Parser {
-	corpusDB, err := db.Open("./corpus.db", true)
+	corpusDB, err := db.Open(DBCorpusPath, true)
 	if err != nil {
 		if corpusDB == nil {
 			log.Fatalf("failed to open corpus database: %v", err)
@@ -30,21 +31,24 @@ func NewParser() *Parser {
 func (parser *Parser) Parse() {
 	buffer := ""
 	fileCount := 1
-	tokenCount := 0
+	sequenceCount := 0
+	totalCount := 0
 	for _, rec := range parser.corpusDB.Records {
 		buffer += string(rec.Val[:])
-		tokenCount += 1
+		sequenceCount += 1
+		totalCount += 1
 
-		if tokenCount > 10000 {
+		if sequenceCount > 10000 {
 			parser.WriteToFile(fileCount, &buffer)
 
 			fileCount += 1
-			tokenCount = 0
+			sequenceCount = 0
 			buffer = ""
 		}
-
 	}
 	parser.WriteToFile(fileCount, &buffer)
+
+	log.Logf(0, "total number of sequences (traces): %v", totalCount)
 }
 
 func (parser *Parser) WriteToFile(fileCount int, content *string) {
