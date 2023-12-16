@@ -60,9 +60,6 @@ if __name__ == "__main__":
         tokenTrainer.train()
 
     syzTokenizer = SyzTokenizer()
-    word1 = "mq_unlink(&(0x7f0000000000)='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\x00')"
-    word2 = "write(r0, &(0x7f0000000020)=\"010000000000000000\", 0x9)"
-    print(syzTokenizer.tokenize_sequence([word1, word2]))
 
     # train model
     for i in Path("./tokens/").glob('**/*.txt'):
