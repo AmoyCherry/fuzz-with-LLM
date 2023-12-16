@@ -31,6 +31,9 @@ class SyzTokenizerTrainer:
 
 class SyzTokenizer:
     def __init__(self):
+        if Path("tokenizer").exists() is False:
+            tokenTrainer = SyzTokenizerTrainer(Tokenizer_str)
+            tokenTrainer.train()
         self.tokenizer = BertTokenizer.from_pretrained(ModelPath)
 
     def tokenize_word(self, word: str):
@@ -55,10 +58,6 @@ class Dataset(torch.utils.data.Dataset):
 
 
 if __name__ == "__main__":
-    if Path("tokenizer").exists() is False:
-        tokenTrainer = SyzTokenizerTrainer(Tokenizer_str)
-        tokenTrainer.train()
-
     syzTokenizer = SyzTokenizer()
 
     # train model
