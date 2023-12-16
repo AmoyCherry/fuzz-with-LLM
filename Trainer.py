@@ -31,7 +31,7 @@ class SyzTokenizerTrainer:
 
 class SyzTokenizer:
     def __init__(self):
-        if Path("tokenizer").exists() is False:
+        if Path(ModelPath).exists() is False:
             tokenTrainer = SyzTokenizerTrainer(Tokenizer_str)
             tokenTrainer.train()
         self.tokenizer = BertTokenizer.from_pretrained(ModelPath)
