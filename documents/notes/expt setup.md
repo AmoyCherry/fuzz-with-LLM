@@ -71,8 +71,6 @@ For now, we can tokenizer a syscall sequence.
 
 ![token](../assets/tokenizer-1.png)
 
-![token](../assets/tokenizer-2.png)
-
 ### 3. Train the model
 
 3.1 Building the DataLoader 
