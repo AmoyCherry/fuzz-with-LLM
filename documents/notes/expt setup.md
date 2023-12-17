@@ -74,5 +74,8 @@ For now, we can tokenize a syscall sequence.
 ### 3. Train the model
 
 3.1 Building the DataLoader 
+> #### NOTE
+> 1. file.read().split('[SEP]\n') will left a blank str '' for each sequence. Now it's handled by the `adjust_format` method.
+> 2. Sequences have different length so we have to set the three parameters of `max_length=16`, `padding='max_length'` and `truncation=True` to resolve `ValueError: expected sequence of length 5 at dim 1 `.
 
 3.2 Training
