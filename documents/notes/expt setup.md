@@ -67,7 +67,7 @@ bert = BertTokenizerFast('vocab.txt')
 bert.save_pretrained(ModelPath)
 ```
 
-For now, we can tokenizer a syscall sequence.
+For now, we can tokenize a syscall sequence.
 
 ![token](../assets/tokenizer-1.png)
 

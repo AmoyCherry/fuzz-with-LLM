@@ -2,6 +2,7 @@ from Trainer import SyzTokenizer
 
 import unittest
 
+
 class TestSyzTokenizer(unittest.TestCase):
     def setUp(self):
         self.tokenizer = SyzTokenizer()

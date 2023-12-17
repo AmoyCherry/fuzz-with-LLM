@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/google/syzkaller/pkg/db"
 	"github.com/google/syzkaller/pkg/log"
 	"os"
@@ -29,12 +30,13 @@ func NewParser() *Parser {
 }
 
 func (parser *Parser) Parse() {
+	parser.CreatePathIfNotExist()
 	buffer := ""
 	fileCount := 1
 	sequenceCount := 0
 	totalCount := 0
 	for _, rec := range parser.corpusDB.Records {
-		buffer += string(rec.Val[:])
+		buffer += string(rec.Val[:]) + "[SEP]\n"
 		sequenceCount += 1
 		totalCount += 1
 
@@ -49,6 +51,20 @@ func (parser *Parser) Parse() {
 	parser.WriteToFile(fileCount, &buffer)
 
 	log.Logf(0, "total number of sequences (traces): %v", totalCount)
+}
+
+func (Parser *Parser) CreatePathIfNotExist() {
+
+	if _, err := os.Stat("./tokens/"); os.IsNotExist(err) {
+		err := os.MkdirAll("./tokens/", os.ModePerm)
+		if err != nil {
+			fmt.Println("Failed to create folder:", err)
+			return
+		}
+		fmt.Println("Folder created successfully!")
+	} else {
+		fmt.Println("Folder already exists!")
+	}
 }
 
 func (parser *Parser) WriteToFile(fileCount int, content *string) {
