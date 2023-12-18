@@ -14,6 +14,8 @@ type Parser struct {
 
 const TokenFilePath = "./tokens/tokens_"
 const DBCorpusPath = "./parser/corpus.db"
+const TokenFileSize = 256
+const VocabFilePath = "./vocab/vocab.txt"
 
 func NewParser() *Parser {
 	corpusDB, err := db.Open(DBCorpusPath, true)
@@ -30,7 +32,8 @@ func NewParser() *Parser {
 }
 
 func (parser *Parser) Parse() {
-	parser.CreatePathIfNotExist()
+	parser.CreatePathIfNotExist("./tokens/")
+	parser.CreatePathIfNotExist("./vocab/")
 	buffer := ""
 	fileCount := 1
 	sequenceCount := 0
@@ -40,8 +43,9 @@ func (parser *Parser) Parse() {
 		sequenceCount += 1
 		totalCount += 1
 
-		if sequenceCount > 10000 {
+		if sequenceCount >= TokenFileSize {
 			parser.WriteToFile(fileCount, &buffer)
+			parser.WriteVocabFile(&buffer)
 
 			fileCount += 1
 			sequenceCount = 0
@@ -49,14 +53,15 @@ func (parser *Parser) Parse() {
 		}
 	}
 	parser.WriteToFile(fileCount, &buffer)
+	parser.WriteVocabFile(&buffer)
 
 	log.Logf(0, "total number of sequences (traces): %v", totalCount)
 }
 
-func (Parser *Parser) CreatePathIfNotExist() {
+func (Parser *Parser) CreatePathIfNotExist(path string) {
 
-	if _, err := os.Stat("./tokens/"); os.IsNotExist(err) {
-		err := os.MkdirAll("./tokens/", os.ModePerm)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.MkdirAll(path, os.ModePerm)
 		if err != nil {
 			fmt.Println("Failed to create folder:", err)
 			return
@@ -69,6 +74,26 @@ func (Parser *Parser) CreatePathIfNotExist() {
 
 func (parser *Parser) WriteToFile(fileCount int, content *string) {
 	f, err := os.Create(TokenFilePath + strconv.Itoa(fileCount) + ".txt")
+	if err != nil {
+		log.Fatalf("open token error :", err)
+		return
+	}
+
+	_, err = f.Write([]byte(*content))
+	if err != nil {
+		log.Fatalf("write token error: ", err)
+		return
+	}
+
+	err = f.Close()
+	if err != nil {
+		log.Fatalf("Close token error: ", err)
+		return
+	}
+}
+
+func (parser *Parser) WriteVocabFile(content *string) {
+	f, err := os.OpenFile(VocabFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Fatalf("open token error :", err)
 		return
