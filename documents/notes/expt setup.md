@@ -79,3 +79,7 @@ For now, we can tokenize a syscall sequence.
 > 2. Sequences have different length so we have to set the three parameters of `max_length=16`, `padding='max_length'` and `truncation=True` to resolve `ValueError: expected sequence of length 5 at dim 1 `.
 
 3.2 Training
+
+**Boost the accuracy!**
+
+![trai](../assets/Training.png)
