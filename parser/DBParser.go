@@ -52,6 +52,7 @@ func (parser *Parser) Parse() {
 			buffer = ""
 		}
 	}
+	buffer += "[UNK]\n"
 	parser.WriteToFile(fileCount, &buffer)
 	parser.WriteVocabFile(&buffer)
 

@@ -1,9 +1,11 @@
 import os
 import torch
 from tqdm import tqdm
-from transformers import BertTokenizerFast, RobertaForMaskedLM, RobertaConfig, pipeline
+from transformers import BertTokenizerFast, RobertaForMaskedLM, RobertaConfig, pipeline, top_k_top_p_filtering, AutoModelForMaskedLM
 from pathlib import Path
 from transformers import BertTokenizer
+from torch.nn import functional as F
+
 
 TokenizerPath = "SyzTokenizer"
 VocabFilePath = "vocab/vocab.txt"
@@ -83,9 +85,11 @@ class SyzTokenizerTrainer:
             dummy_bert = BertTokenizerFast(VocabFilePath)
             os.remove(VocabFilePath)
             dummy_bert.save_pretrained("vocab")
-            print("extract vocabulary, ignore 'holes'")
+            print("extract vocabulary, ignore the above 'holes'")
+
             bert = BertTokenizerFast(VocabFilePath)
             bert.save_pretrained(TokenizerPath)
+            print("save SyzTokenizer")
 
 
 class SyzTokenizer:
@@ -95,14 +99,26 @@ class SyzTokenizer:
             tokenTrainer.train()
         self.tokenizer = BertTokenizer.from_pretrained(TokenizerPath)
 
+    def mask_token(self):
+        return self.tokenizer.mask_token()
+
+    def decode(self, tokens: []):
+        return self.tokenizer.decode(tokens)
+
+    def decode_token(self, tokens: []):
+        return self.tokenizer.decode(tokens)
+
+    def mask_token_id(self):
+        return self.tokenizer.mask_token_id()
+
     def vocab_size(self):
         return self.tokenizer.vocab_size
 
     def tokenize_word(self, word: str):
         return self.tokenizer.convert_tokens_to_ids(word)
 
-    def tokenize_sequence(self, sequence: list[str]):
-        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=16, padding='max_length', truncation=True)
+    def tokenize_sequence(self, sequence: list[str], return_tensors=None):
+        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=16, padding='max_length', truncation=True, return_tensors=return_tensors)
 
     def get_sequence_batch(self, filename):
         batch = []
@@ -177,11 +193,39 @@ if __name__ == "__main__":
         # print("SyzTokenizer has vocab_size: ", vocab_size)
         syzLLMTrainer = SyzLLMTrainer(3304)
         syzLLMTrainer.train()
+    model = AutoModelForMaskedLM.from_pretrained(ModelPath)
+    #model = AutoModelForCausalLM.from_pretrained(ModelPath)
 
-    word1 = []
-    word2 = []
-    word3 = []
-    sequence = [word1, word2, word3]
+    word1 = 'mmap(&(0x7f0000000000/0x1000)=nil, 0x1000, 0x3, 0x32, 0xffffffffffffffff, 0x0)'
+    word2 = "open(&(0x7f0000000010)='fcntl215DIbFE\\x00', 0xc2, 0x180)"
+    word3 = 'read(r0, &(0x7f000000001e)=\"\"/33, 0x21)'
+    word4 = 'pipe(&(0x7f0000000008)={<r0=>0xffffffffffffffff})'
+    word5 = "open(&(0x7f0000000000)='/lib/x86_64-linux-gnu/libc.so.6\\x00', 0x80000, 0x0)"
+    MASK = "[MASK]"
+    sequence1 = [word1, word2, word3]
+    sequence2 = [word1, word2, word3, MASK]
 
-    fill = pipeline('fill-mask', model='SyzLLM', tokenizer='SyzTokenizer')
-    fill(f'{fill.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=16, padding="max_length", truncation=True)} {fill.tokenizer.mask_token}')
+    input_ids = syzTokenizer.tokenize_sequence(sequence1, return_tensors="pt")
+    input_ids = input_ids.data['input_ids']
+    # get logits of last hidden state
+    next_token_logits = model(input_ids).logits[:, -1, :]
+
+    # filter
+    filtered_next_token_logits = top_k_top_p_filtering(next_token_logits, top_k=5, top_p=1.0)
+
+    # sample
+    probs = F.softmax(filtered_next_token_logits, dim=-1)
+    next_token = torch.multinomial(probs, num_samples=1)
+
+    generated = torch.cat([input_ids, next_token], dim=-1)
+
+    resulting_string = syzTokenizer.decode(generated.tolist()[0])
+    print(resulting_string)
+
+    input_ids = syzTokenizer.tokenize_sequence(sequence2, return_tensors="pt")
+    input_ids = input_ids.data['input_ids']
+    mask_token_index = torch.where(input_ids == 3301)[1]
+    mask_token_logits = model(input_ids).logits[0, mask_token_index, :]
+    top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
+    resulting_string = syzTokenizer.decode(top_5_tokens)
+    print(resulting_string)
