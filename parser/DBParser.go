@@ -53,6 +53,9 @@ func (parser *Parser) Parse() {
 		}
 	}
 	buffer += "[UNK]\n"
+	buffer += "[MASK]\n"
+	buffer += "[CLS]\n"
+	buffer += "[PAD]\n"
 	parser.WriteToFile(fileCount, &buffer)
 	parser.WriteVocabFile(&buffer)
 
