@@ -1,20 +1,41 @@
 import os
 from pathlib import Path
 
+import tensorflow as tf
+from transformers import GPT2Tokenizer, GPT2Config, TFGPT2LMHeadModel
+from transformers import WEIGHTS_NAME, CONFIG_NAME
+from tokenizers import Tokenizer
+from tokenizers.models import BPE
+from tokenizers.decoders import ByteLevel as ByteLevelDecoder
+from tokenizers.normalizers import NFD, Sequence
+from tokenizers.trainers import BpeTrainer
+from tokenizers.pre_tokenizers import ByteLevel
+
 from transformers import BertTokenizerFast, BertTokenizer
 
 import utils
 
 
-def train_tokenizer_from_bert():
-    dummy_bert = BertTokenizerFast(utils.VocabFilePath)
+def train_tokenizer_from_gpt():
+    dummy = GPT2Tokenizer(utils.VocabFilePath)
     os.remove(utils.VocabFilePath)
-    dummy_bert.save_pretrained("vocab")
+    dummy.save_pretrained("vocab")
     print("extract vocabulary, ignore the above 'holes'")
 
-    bert = BertTokenizerFast(utils.VocabFilePath)
-    bert.save_pretrained(utils.TokenizerPath)
-    print("save SyzTokenizer")
+    gpt2_tokenizer = GPT2Tokenizer(utils.GPT2TokenizerPath)
+    gpt2_tokenizer.save_pretrained(utils.GPT2TokenizerPath)
+    print("save SyzTokenizerFromBert")
+
+
+def train_tokenizer_from_bert():
+    dummy = BertTokenizerFast(utils.VocabFilePath)
+    os.remove(utils.VocabFilePath)
+    dummy.save_pretrained("vocab")
+    print("extract vocabulary, ignore the above 'holes'")
+
+    bert_tokenizer = BertTokenizerFast(utils.VocabFilePath)
+    bert_tokenizer.save_pretrained(utils.TokenizerPath)
+    print("save SyzTokenizerFromBert")
 
 
 class SyzTokenizer:
@@ -54,3 +75,7 @@ class SyzTokenizer:
                     continue
                 batch.append(self.tokenize_sequence(utils.format_tokens(sequence.split('\n'))))
         return batch
+
+
+if __name__ == '__main__':
+    train_tokenizer_from_gpt()

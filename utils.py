@@ -1,4 +1,5 @@
 TokenizerPath = "SyzTokenizer"
+GPT2TokenizerPath = "GPT2Tokenizer"
 VocabFilePath = "vocab/vocab.txt"
 ModelPath = "SyzLLM"
 

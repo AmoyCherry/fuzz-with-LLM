@@ -20,6 +20,10 @@
 
 
 
+corpus size > parameter size > token size
+
+
+
 ## Train SyzLLM
 
 > ref:
@@ -45,7 +49,7 @@ NOTE:
 
 Download corpus.db from [google drive](https://groups.google.com/g/syzkaller/c/77ObybwNnig?pli=1).
 
-### 1.3 drapa (To be start)
+### 1.3 darpa (To be start)
 
 https://github.com/darpa-i2o/Transparent-Computing
 
@@ -80,6 +84,8 @@ For now, we can tokenize a syscall sequence.
 
 3.2 Training
 
-**Boost the accuracy!**
+> **Boost the accuracy!**
+>
+> 1. Relations at two levels: syscall type and parameters.
 
 ![trai](../assets/Training.png)
