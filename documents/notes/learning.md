@@ -1,3 +1,10 @@
+## Syzkaller source code analysis
+
+- [syz-manager](https://xz.aliyun.com/t/12424#toc-23)
+- [syz-fuzzer](https://arttnba3.cn/2023/09/27/FUZZ-0X03-SYZKALLER-III_SOURCE_SYZFUZZER/)
+
+
+
 > material:
 >
 > [AFL brief](https://paper.seebug.org/841/)
