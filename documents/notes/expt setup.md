@@ -6,15 +6,15 @@
 >    - The token size is around **120k** now.
 >    - "If the model’s performance on the validation data starts to degrade while the training performance remains high, it’s a signal that overfitting may be occurring."
 
-| LLM AI Model | Parameters       | Year |
-| :----------- | :--------------- | :--- |
-| TinyBERT4    | **14.5 million** | 2020 |
-| BERT         | 340 million      | 2018 |
-| GPT-2        | 1.5 billion      | 2019 |
-| Meena        | 2.6 billion      | 2020 |
-| GPT-3        | 175 billion      | 2020 |
-| LaMDA        | 137 billion      | 2022 |
-| BLOOM        | 176 billion      | 2022 |
+| Model     | Parameters       | Year |
+| :-------- | :--------------- | :--- |
+| TinyBERT4 | **14.5 million** | 2020 |
+| BERT      | 340 million      | 2018 |
+| GPT-2     | 1.5 billion      | 2019 |
+| Meena     | 2.6 billion      | 2020 |
+| GPT-3     | 175 billion      | 2020 |
+| LaMDA     | 137 billion      | 2022 |
+| BLOOM     | 176 billion      | 2022 |
 
 ------
 
@@ -57,7 +57,7 @@ https://github.com/darpa-i2o/Transparent-Computing
 
 A trace in corpus.db looks like below. It's consist of several syscalls with arguments (tokens) and we get the number of **120k** tokens now.
 
-**The format of the tokens need a explanation.**
+> [An explanation](https://www.collabora.com/news-and-blog/blog/2020/03/26/syzkaller-fuzzing-the-kernel/) about the syscall format.
 
 ![token](../assets/token.png)
 
