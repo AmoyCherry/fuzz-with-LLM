@@ -164,9 +164,9 @@ mmap(&(0x7f00009fd000/0x600000)=nil, 0x600000, 0x0, 0x6031, 0xffffffffffffffff, 
 
 ### Resources
 
-I'm concerned about the reason why the SyzLLM can predict [r0 = open, MASK] as [r0 = open, read(r0)] is because it learned the program [r0 = open, read(r0)] from corpus. So we have to select a strategy from the tree:
+I'm concerned about the reason why the SyzLLM can predict [r0 = open, MASK] as [r0 = open, read(r0)] is that it learned the program [r0 = open, read(r0)] from corpus. So we have to select a strategy from the three:
 
-1. Replace [r0 = open, read(r0)] as [read(open)]; (the relation will be lost and won't be learn by SyzLLM model)
+1. Replace [r0 = open, read(r0)] as [read(open)]; (the relation will be lost and won't be learned by SyzLLM model)
 2. Replace [r0 = open, read(r0)] as [r0 = open, read(open)];
 3. Keep it as [r0 = open, read(r0)];
 
