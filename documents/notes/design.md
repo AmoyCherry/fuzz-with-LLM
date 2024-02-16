@@ -62,7 +62,7 @@ r1 = open(&(0x7f0000000200)='./file0\x00', 0x210c2, 0x0)
 
 - Address: 0x7f0000000200;
 
-It means that assign the string './file0' to the address, and use &(addr) to get the string for open call's filename.
+**It means that assign the string './file0' to the address, and use &(addr) to get the string for open call's filename.**
 
 #### mkdir
 
