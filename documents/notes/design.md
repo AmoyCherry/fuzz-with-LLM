@@ -4,7 +4,7 @@ Each syscall consists of a specific syscall name and several args. And a bit of 
 
 On the other hand, the **flag** args should be considered as a part of the 'specific syscall name' which means syscalls with different flags (**regardless of order**) should be treated as different. 
 
-To reduce the token size of syscalls, we map all non-flag (address) args into a pre-allocate addr list. There are four types of non-flag args to process.
+To reduce the token size of model, we map all non-flag (address) args into a pre-allocate addr list. There are four types of non-flag args to process.
 
 ### Enums (flags)
 
@@ -46,7 +46,7 @@ All the flags are integers that obtained by ORing these flags. That stores all t
 
 ### Identifiers
 
-We can identify the pattern of "**&(0x...)=**..." (assign the right value string or struct * to the addr) for each kind of syscall and extract them to build the map (e.g. syscall_name -> arg_list[NOT_REPLACE, arg2, ...]) by scanning the corpus, and replace these identifiers from the map by second scanning.
+We can identify the pattern of "**&(0x...)=**..." (assign the right value string or struct * to the addr) for each kind of syscall and extract them to glean and build the map (the pre-allocate args, e.g. syscall_name -> arg_list[NOT_REPLACE, arg2, ...]) by scanning the corpus, and replace these identifiers from the map by second scanning.
 
 Let's look at 4 example syscalls from corpus:
 
