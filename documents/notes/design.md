@@ -46,7 +46,9 @@ All the flags are integers that obtained by ORing these flags. That stores all t
 
 ### Identifiers
 
-We can identify the pattern of "**&(0x...)=**..." (assign the right value string or struct * to the addr) for each kind of syscall and extract them to glean and build the map (the pre-allocate args, e.g. syscall_name -> arg_list[NOT_REPLACE, arg2, ...]) by scanning the corpus, and replace these identifiers from the map by second scanning.
+We can identify the pattern of "**&(0x...)=**..." (assign the right value string or struct * to the addr) for each kind of syscall and extract them to glean and build the map (the pre-allocate args) by scanning the corpus, and replace these identifiers from the map by second scanning.
+
+![image-20240216220229314](../assets/preprocessing-design.png)
 
 Let's look at 4 example syscalls from corpus:
 
