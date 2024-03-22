@@ -32,7 +32,7 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     batch = []
     for i in Path("./tokens/").glob('**/*.txt'):
         batch += syzTokenizer.get_sequence_batch(i)
-    print("tokens size: ", len(batch))
+    print("sequences size: ", len(batch))
     labels = torch.tensor([x.input_ids for x in batch])
     mask = torch.tensor([x.attention_mask for x in batch])
 
@@ -63,7 +63,7 @@ class SyzLLMTrainer:
         self.tokenizer = SyzTokenizer()
         config = RobertaConfig(
             vocab_size=self.tokenizer.vocab_size(),  # we align this to the tokenizer vocab_size
-            max_position_embeddings=514,
+            max_position_embeddings=256,
             hidden_size=768,
             num_attention_heads=12,
             num_hidden_layers=6,

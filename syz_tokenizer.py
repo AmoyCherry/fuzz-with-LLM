@@ -17,8 +17,8 @@ import utils
 
 
 def train_tokenizer_from_gpt():
-    dummy = GPT2Tokenizer(utils.VocabFilePath)
-    os.remove(utils.VocabFilePath)
+    dummy = GPT2Tokenizer(utils.DummyVocabFilePath)
+    os.remove(utils.DummyVocabFilePath)
     dummy.save_pretrained("vocab")
     print("extract vocabulary, ignore the above 'holes'")
 
@@ -62,8 +62,8 @@ class SyzTokenizer:
     def tokenize_word(self, word: str):
         return self.tokenizer.convert_tokens_to_ids(word)
 
-    def tokenize_sequence(self, sequence: list[str], return_tensors=None):
-        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=16, padding='max_length',
+    def tokenize_sequence(self, sequence: list[str], return_tensors=None, max_length_arg=128):
+        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=max_length_arg, padding='max_length',
                                           truncation=True, return_tensors=return_tensors)
 
     def get_sequence_batch(self, filename):
@@ -78,4 +78,4 @@ class SyzTokenizer:
 
 
 if __name__ == '__main__':
-    train_tokenizer_from_gpt()
+    train_tokenizer_from_bert()

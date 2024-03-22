@@ -1,13 +1,15 @@
-TokenizerPath = "SyzTokenizer"
-GPT2TokenizerPath = "GPT2Tokenizer"
-VocabFilePath = "SyzTokenizer/vocab.txt"
+TokenizerPath = "./SyzTokenizer"
+GPT2TokenizerPath = "./GPT2Tokenizer"
+DummyVocabFilePath = "./DummySyzTokenizer/vocab.txt"
+VocabFilePath = "./SyzTokenizer/vocab.txt"
 ModelPath = "SyzLLM"
 
 CLS = "[CLS]"
 SEP = "[SEP]"
 UNK = "[UNK]"
 
-UNK_idx = 211692
+UNK_idx = 116356
+MASK_idx = 116357
 
 
 def format_tokens(sequence: list[str]):
