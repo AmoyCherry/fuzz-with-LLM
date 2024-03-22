@@ -9,7 +9,7 @@
 
 ## Results
 
-### Coverage over time
+### Coverage over time without corpus
 > System: Ubuntu-22.0
 > * Memory: 8 G
 > * CPUs: 4, Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
