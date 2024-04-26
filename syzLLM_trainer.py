@@ -1,6 +1,6 @@
 import torch
 from tqdm import tqdm
-from transformers import RobertaForMaskedLM, RobertaConfig
+from transformers import RobertaForMaskedLM, RobertaConfig, DistilBertForMaskedLM, DistilBertConfig
 from pathlib import Path
 
 from syz_tokenizer import SyzTokenizer
@@ -41,16 +41,14 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     # create random array of floats with equal dims to input_ids
     rand = torch.rand(input_ids.shape)
     # mask random 15% where token is not 0 [PAD], 1 [CLS], or 2 [SEP]
-    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (
-            input_ids != syzTokenizer.tokenizer.cls_token_id) * (
-                       input_ids != syzTokenizer.tokenizer.sep_token_id)
+    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (input_ids != syzTokenizer.tokenizer.cls_token_id) * (input_ids != syzTokenizer.tokenizer.sep_token_id)
     # loop through each row in input_ids tensor (cannot do in parallel)
     for j in range(input_ids.shape[0]):
         # get indices of mask positions from mask array
         selection = torch.flatten(mask_arr[j].nonzero()).tolist()
         temp = input_ids[j, selection]
         # mask input_ids
-        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id  # our custom [MASK] token == 3
+        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id
 
     print(input_ids.shape)
 
@@ -58,22 +56,39 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     return encodings
 
 
+DISTILBERT = "distilbert"
+BERT = "bert"
+
+
 class SyzLLMTrainer:
-    def __init__(self):
+    def __init__(self, model=DISTILBERT):
         self.tokenizer = SyzTokenizer()
+
         config = RobertaConfig(
             vocab_size=self.tokenizer.vocab_size(),  # we align this to the tokenizer vocab_size
             max_position_embeddings=256,
             hidden_size=768,
             num_attention_heads=12,
             num_hidden_layers=6,
-            type_vocab_size=1
+            type_vocab_size=1,
         )
-        self.model = RobertaForMaskedLM(config)
+        distil_config = DistilBertConfig(
+            vocab_size=self.tokenizer.vocab_size(),
+            max_position_embeddings=256,
+            dropout=0.2,
+        )
+
+        print("Using model: ", model)
+        if model == DISTILBERT:
+            self.model = DistilBertForMaskedLM(distil_config)
+        else:
+            self.model = RobertaForMaskedLM(config)
+
         self.device = None
 
     def setup_device(self):
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        self.device = torch.device('mps') if torch.backends.mps.is_available() else torch.device('cpu')
+        print(f"Using device: {self.device}")
         # and move our model over to the selected device
         self.model.to(self.device)
 
@@ -114,5 +129,4 @@ class SyzLLMTrainer:
 
 
 if __name__ == "__main__":
-    syzLLM_trainer = SyzLLMTrainer()
-    syzLLM_trainer.train()
+    SyzLLMTrainer().train()
