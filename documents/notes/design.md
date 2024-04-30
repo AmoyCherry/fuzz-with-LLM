@@ -6,6 +6,69 @@ On the other hand, the **flag** args should be considered as a part of the 'spec
 
 To reduce the token size of model, we map all non-flag (address) args into a pre-allocate addr list. There are four types of non-flag args to process.
 
+
+
+
+
+DataArg - buffer, path
+
+PointerArg - ptr, file
+
+GroupArg - struct
+
+ConstArg - flag, mode, fd, len
+
+UnionArg
+
+ResultArg
+
+
+
+
+
+PtrType - file, msg
+
+ConstArg - LenType - len
+
+ConstArg - ConstType - option, fd (0xffff...), **mode**, cmd
+
+ConstArg - FlagsType - **flags**,
+
+BufferType - path,
+
+ResourceType - fd,
+
+
+
+
+
+Maintain four tables per program.
+
+- `buffer`: [address → flag_index]
+  - real arg value as the flag_index;
+- `path`: [string → flag_index]
+  - real arg value as the flag_index;
+- `resource`: [fd → flag_index]
+- `res_def`: [flag_index → token]
+- `ptr`:[address -> flag_index]
+  - `Res`:
+
+
+
+Maintain global tables as the replacement flags.
+
+
+
+nested struct, union and ptr
+
+
+
+get a legal call from syzLLM so that it can be deserialized to `prog.Program`. After that, we can use the origin args from syzLLM or gen new args by `prog.Meta`.
+
+
+
+
+
 ### Enums (flags)
 
 Since all the flags of sycalls in linux are integers (like a set), the only thing we need to do is to keep them.
@@ -45,38 +108,6 @@ r1 = open(&(0x7f0000000200)='./file0\x00', 0x210c2, 0x0)
 All the flags are integers that obtained by ORing these flags. That stores all the flags without their order which is what we want.
 
 ### Identifiers
-
-We can identify the pattern of "**&(0x...)=**..." (assign the right value string or struct * to the addr) for each kind of syscall and extract them to glean and build the map (the pre-allocate args) by scanning the corpus, and replace these identifiers from the map by second scanning.
-
-![image-20240216220229314](../assets/preprocessing-design.png)
-
-Let's look at 4 example syscalls from corpus:
-
-#### open
-
-```c
-r1 = open(&(0x7f0000000200)='./file0\x00', 0x210c2, 0x0)
-```
-
-- Identifier - string filename: './file0\x00' equal to string './file0' (\x00 in ascii is null);
-
-- Address: 0x7f0000000200;
-
-**It means that assign the string './file0' to the address, and use &(addr) to get the string for open call's filename.**
-
-#### mkdir
-
-> ```c
-> int mkdir(const char *pathname, mode_t mode);
-> ```
-
-```c
-mkdir(&(0x7f0000000100)='./file0\x00', 0x0)
-```
-
-- Identifier - string filename: './file0\x00';
-
-- Address: 0x7f0000000100;
 
 #### sendmsg
 
@@ -128,10 +159,6 @@ timer_settime(0x0, 0x0, &(0x7f0000000000)={{0x0, 0x989680}, {0x0, 0x989680}}, 0x
 
 ### Buffers
 
-The buffers in corpus are in the forms of "&(addr)" or "&(addr)=...", which can be handled like above identifiers.
-
-3 example syscalls from corpus:
-
 #### read
 
 > ```c
@@ -163,14 +190,6 @@ mmap(&(0x7f00009fd000/0x600000)=nil, 0x600000, 0x0, 0x6031, 0xffffffffffffffff, 
 ```
 
 ### Resources
-
-I'm concerned about the reason why the SyzLLM can predict [r0 = open, MASK] as [r0 = open, read(r0)] is that it learned the program [r0 = open, read(r0)] from corpus. So we have to select a strategy from the three:
-
-1. Replace [r0 = open, read(r0)] as [read(open)]; (the relation will be lost and won't be learned by SyzLLM model)
-2. Replace [r0 = open, read(r0)] as [r0 = open, read(open)];
-3. Keep it as [r0 = open, read(r0)];
-
-I prefer to process identifiers and buffers first and see how many tokens in the result.
 
 
 

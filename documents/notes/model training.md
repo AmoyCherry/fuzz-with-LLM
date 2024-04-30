@@ -30,6 +30,8 @@ corpus size > parameter size > token size
 > [How to Train BERT from Scratch](https://thepythoncode.com/article/pretraining-bert-huggingface-transformers-in-python)
 >
 > [huggingface](https://huggingface.co/blog/pretraining-bert#3-preprocess-the-dataset)
+>
+> [train bert](https://towardsdatascience.com/how-to-train-a-bert-model-from-scratch-72cfce554fc6)
 
 ### 1. Prepare dataset
 

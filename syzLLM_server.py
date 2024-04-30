@@ -5,7 +5,7 @@ from transformers import AutoModelForMaskedLM
 import torch
 
 from syz_tokenizer import SyzTokenizer
-from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK
+from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath
 
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
@@ -20,7 +20,7 @@ def extract_syscall_name(syscall):
 
 
 def init_env():
-    with open(VocabFilePath, 'r') as file:
+    with open(SyzTokenizerVocabFilePath, 'r') as file:
         for line in file:
             syscall = line.strip()
             syscall_name = extract_syscall_name(syscall)
@@ -56,9 +56,9 @@ def highest_power_of_2(N):
 def generate_next_syscall(sequence):
     input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=min(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 116357)[1]
+    mask_token_index = torch.where(input_ids == 142831)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
-    top_5_tokens = torch.topk(mask_token_logits, 3, dim=1).indices[0].tolist()
+    top_5_tokens = torch.topk(mask_token_logits, 6, dim=1).indices[0].tolist()
     syscalls = []
     for token in top_5_tokens:
         call = tokenizer.decode([token])
@@ -75,10 +75,14 @@ def pick(n):
         return 0
     elif probability < 0.9:
         return min(1, n - 1)
-    elif probability < 0.99:
+    elif probability < 0.95:
         return min(2, n - 1)
-    else:
+    elif probability < 0.96:
         return min(3, n - 1)
+    elif probability < 0.97:
+        return min(4, n - 1)
+    else:
+        return min(5, n - 1)
 
 
 
@@ -102,7 +106,8 @@ def handle_post_request():
     next_syscalls = generate_next_syscall(sequence)
 
     print("next_syscalls: ", next_syscalls, "\n")
-    response = {'State': 0, 'Syscall': next_syscalls[pick(len(syscall_list))]}
+    idx = pick(len(syscall_list))
+    response = {'State': 0, 'Syscall': next_syscalls[idx]}
     return jsonify(response)
 
 

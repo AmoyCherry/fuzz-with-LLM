@@ -38,7 +38,7 @@ class TestSyzTokenizer(unittest.TestCase):
     def GenerateNextTokenFromMask(self, sequence):
         input_ids_tensor = self.tokenizer.tokenize_sequence(sequence, return_tensors="pt")
         input_ids = input_ids_tensor.data['input_ids']
-        mask_token_index = torch.where(input_ids == 116357)[1]
+        mask_token_index = torch.where(input_ids == 142831)[1]
         mask_token_logits = self.mask_model(input_ids).logits[0, mask_token_index, :]
         top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
         syscalls = []
@@ -56,11 +56,28 @@ class TestSyzTokenizer(unittest.TestCase):
         sequence = [wordx, "[MASK]"]
         self.GenerateNextTokenFromMask(sequence)
 
+    def testAddrCall(self):
+        sset = set()
+        # Open and read the file using 'with' statement
+        with open("DummySyzTokenizer/vocab.txt", "r") as file:
+            content = file.read().split("[SEP]")
+            for line in content:
+                if "&(0x" in line:
+                    words = line.split('(')
+                    if words[0][0] == 'r' and len(words[0].split(' ')) >= 2:
+                        sset.add(words[0].split(' ')[2])
+                    else:
+                        sset.add(words[0])
+
+            print(len(sset))
+
     def testGenerateNextTokenFromMask(self):
         print("mask socket: ")
         # sequence1 = [CLS, MASK, word2, word3, word4, word5, SEP]
-        word1 = "connect$pppl2tp(r0, &(0x7f0000000240)=@pppol2tpin6={0x18, 0x1, {0x0, r1, 0x8, 0x0, 0x0, 0x0, {0xa, 0x0, 0x0, @dev}}}, 0x32)"
-        sequence1 = [word1, MASK]
+        word1 = "r0 = openat$kvm(0xffffffffffffffff, &(0x7f0000012000), 0x0, 0x0)"
+        word2 = "r1 = ioctl$KVM_CREATE_VM(r0, 0x111, 0x111)"
+        word3 = "r2 = ioctl$KVM_CREATE_VCPU(r1, 0x111, 0x111)"
+        sequence1 = [word1, word2, word3, MASK]
         self.GenerateNextTokenFromMask(sequence1)
 
         # print("mask ioctl: ")

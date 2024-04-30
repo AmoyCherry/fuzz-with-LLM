@@ -1,6 +1,6 @@
 import torch
 from tqdm import tqdm
-from transformers import RobertaForMaskedLM, RobertaConfig
+from transformers import RobertaForMaskedLM, RobertaConfig, DistilBertForMaskedLM, DistilBertConfig
 from pathlib import Path
 
 from syz_tokenizer import SyzTokenizer
@@ -41,9 +41,7 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     # create random array of floats with equal dims to input_ids
     rand = torch.rand(input_ids.shape)
     # mask random 15% where token is not 0 [PAD], 1 [CLS], or 2 [SEP]
-    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (
-            input_ids != syzTokenizer.tokenizer.cls_token_id) * (
-                       input_ids != syzTokenizer.tokenizer.sep_token_id)
+    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (input_ids != syzTokenizer.tokenizer.cls_token_id) * (input_ids != syzTokenizer.tokenizer.sep_token_id)
     # loop through each row in input_ids tensor (cannot do in parallel)
     for j in range(input_ids.shape[0]):
         # get indices of mask positions from mask array
@@ -61,6 +59,7 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
 class SyzLLMTrainer:
     def __init__(self):
         self.tokenizer = SyzTokenizer()
+
         config = RobertaConfig(
             vocab_size=self.tokenizer.vocab_size(),  # we align this to the tokenizer vocab_size
             max_position_embeddings=256,
@@ -69,7 +68,17 @@ class SyzLLMTrainer:
             num_hidden_layers=6,
             type_vocab_size=1
         )
-        self.model = RobertaForMaskedLM(config)
+        #self.model = RobertaForMaskedLM(config)
+
+        distilbert_config = DistilBertConfig(
+            vocab_size=self.tokenizer.vocab_size(),
+            max_position_embeddings=256,
+            dropout=0.3,
+            attention_dropout=0.2,
+            qa_dropout=0.2
+        )
+        self.model = DistilBertForMaskedLM(distilbert_config)
+
         self.device = None
 
     def setup_device(self):

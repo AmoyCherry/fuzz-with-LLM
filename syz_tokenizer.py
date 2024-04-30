@@ -28,8 +28,7 @@ def train_tokenizer_from_gpt():
 
 
 def train_tokenizer_from_bert():
-    dummy = BertTokenizerFast(utils.VocabFilePath)
-    os.remove(utils.VocabFilePath)
+    dummy = BertTokenizerFast(utils.DummyVocabFilePath)
     dummy.save_pretrained("vocab")
     print("extract vocabulary, ignore the above 'holes'")
 
@@ -68,9 +67,14 @@ class SyzTokenizer:
 
     def get_sequence_batch(self, filename):
         batch = []
+        deduplication_set = set()
         with open(filename) as file:
             sequences = file.read().split('[SEP]\n')
             for sequence in sequences:
+                if sequence in deduplication_set:
+                    continue
+                deduplication_set.add(sequence)
+
                 if sequence == '':
                     continue
                 batch.append(self.tokenize_sequence(utils.format_tokens(sequence.split('\n'))))
