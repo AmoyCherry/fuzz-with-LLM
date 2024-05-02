@@ -12,13 +12,13 @@
 ### Coverage over time without corpus
 > System: Ubuntu-22.0
 > * Memory: 8 G
-> * CPUs: 4, Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+> * CPU: 4 cores, Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
 > 
 > 
 > VM Kernel Version: linux-5.15
 
 1 VM (2 vCPUs and 4G RAM) for 24 hours.
-![test](./documents/assets/1vm-time.png)
+![test](./documents/assets/expt-05-02.png)
 
 ### Coverage over executed programs without corpus
 > System: Ubuntu-22.0
@@ -29,5 +29,4 @@
 > VM Kernel Version: linux-5.15
 
 1 VM (2 vCPUs and 4G RAM) for 24 hours.
-![test](./documents/assets/1vm-p.png)
-
+![test](./documents/assets/expt-0502-2.png)
