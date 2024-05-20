@@ -1,44 +1,27 @@
+train a model which programs only contains syscall name.
+
+
+
 ## Preprocessing
 
 Each syscall consists of a specific syscall name and several args. And a bit of difference in args can result in different syscalls, even though these args are randomly generated and with limited functional information to themselves. Moreover, too many different tokens hide relations between syscalls in programs which harms model training to find more patterns that improve coverage. 
 
 On the other hand, the **flag** args should be considered as a part of the 'specific syscall name' which means syscalls with different flags (**regardless of order**) should be treated as different. 
 
+So the first problem is to solve which bunch of arg types are not important and can be normalize, and others should be kept.
+
+### Should be normalize
+
+1. constArg
+   - length;
+2. pointerArg
+   - All addrs. 
+
+
+
+
+
 To reduce the token size of model, we map all non-flag (address) args into a pre-allocate addr list. There are four types of non-flag args to process.
-
-
-
-
-
-DataArg - buffer, path
-
-PointerArg - ptr, file
-
-GroupArg - struct
-
-ConstArg - flag, mode, fd, len
-
-UnionArg
-
-ResultArg
-
-
-
-
-
-PtrType - file, msg
-
-ConstArg - LenType - len
-
-ConstArg - ConstType - option, fd (0xffff...), **mode**, cmd
-
-ConstArg - FlagsType - **flags**,
-
-BufferType - path,
-
-ResourceType - fd,
-
-
 
 
 
@@ -55,6 +38,36 @@ Maintain four tables per program.
 
 
 
+Buffer
+
+1. path;
+2. meaningless string;
+
+Const:
+
+1. flags, mode,...
+2. meaningless num, len,...
+
+
+
+Given the scenario:
+
+Call-A (addr-1) -> Call-A (S1)
+
+Call-T (addr-1) -> Call-A (S1)
+
+Call-A (addr-2) -> Call-A (S2)
+
+
+
+Call-A (addr-1) -> Call-A (S1)
+
+Call-T (addr-1) -> Call-A (S2)
+
+Call-A (addr-2) -> Call-A (S1)
+
+
+
 Maintain global tables as the replacement flags.
 
 
@@ -64,10 +77,6 @@ nested struct, union and ptr
 
 
 get a legal call from syzLLM so that it can be deserialized to `prog.Program`. After that, we can use the origin args from syzLLM or gen new args by `prog.Meta`.
-
-
-
-
 
 ### Enums (flags)
 

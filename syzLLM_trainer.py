@@ -1,4 +1,5 @@
 import torch
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import RobertaForMaskedLM, RobertaConfig, DistilBertForMaskedLM, DistilBertConfig
 from pathlib import Path
@@ -48,7 +49,7 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
         selection = torch.flatten(mask_arr[j].nonzero()).tolist()
         temp = input_ids[j, selection]
         # mask input_ids
-        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id  # our custom [MASK] token == 3
+        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id
 
     print(input_ids.shape)
 
@@ -59,16 +60,6 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
 class SyzLLMTrainer:
     def __init__(self):
         self.tokenizer = SyzTokenizer()
-
-        config = RobertaConfig(
-            vocab_size=self.tokenizer.vocab_size(),  # we align this to the tokenizer vocab_size
-            max_position_embeddings=256,
-            hidden_size=768,
-            num_attention_heads=12,
-            num_hidden_layers=6,
-            type_vocab_size=1
-        )
-        #self.model = RobertaForMaskedLM(config)
 
         distilbert_config = DistilBertConfig(
             vocab_size=self.tokenizer.vocab_size(),
@@ -82,7 +73,13 @@ class SyzLLMTrainer:
         self.device = None
 
     def setup_device(self):
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
+        print(f"Using device: {self.device}")
         # and move our model over to the selected device
         self.model.to(self.device)
 
@@ -92,6 +89,9 @@ class SyzLLMTrainer:
         self.model.train()
         # initialize optimizer
         optim = torch.optim.AdamW(self.model.parameters(), lr=1e-4)
+
+        writer = SummaryWriter()
+        global_step = 0
 
         epochs = 2
 
@@ -117,7 +117,10 @@ class SyzLLMTrainer:
                 # print relevant info to progress bar
                 loop.set_description(f'Epoch {epoch}')
                 loop.set_postfix(loss=loss.item())
+                writer.add_scalar('Train/loss', loss.item(), global_step)
+                global_step += 1  # Increment the global step
 
+        writer.close()
         print('training done')
         self.model.save_pretrained(ModelPath)
 

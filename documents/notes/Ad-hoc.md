@@ -10,8 +10,25 @@ train by different modules (file, process, ...)
 
 Feasibility：
 
-1. 保留位置信息
+1. Utilizing the position info
 2. self-attention发现implicit dependencies
+
+Application:
+
+1. Serving as a mutator;
+2. distill high quality seeds.
+
+
+
+## Bugs
+
+### Filling PAD as the mask for all requests 
+
+**Possible Cause 1**
+
+Imbalance distribution, having multiple occurrences of the same sentence in the training data.
+
+*Remove all same sentences and only retain one?*
 
 
 
@@ -62,7 +79,7 @@ scp -r directory/
 ```
 
 ```
-scp -r parallels@10.211.55.4:/home/parallels/gopath/syzkaller_for_SyzLLM/syz-manager/data/vocab.txt ./data/
+scp -r parallels@10.211.55.4:/home/parallels/gopath/syzkaller_for_SyzLLM/syz-manager/data ./
 ```
 
 
@@ -109,7 +126,7 @@ You already have a bullseye.img 2G.
 
 ## Debug syzkaller
 
-#### Try writing "0" to /proc/sys/kernel/yama/ptrace_scope
+#### Try write "0" to /proc/sys/kernel/yama/ptrace_scope
 
 ```
 cd /etc/sysctl.d/
@@ -132,6 +149,8 @@ sudo sysctl --system -a -p|grep yama
 
 ```
 sudo /home/parallels/Downloads/GoLand-2022.3.4/plugins/go-plugin/lib/dlv/linux/dlv --listen=:2346 --headless=true --api-version=2 --accept-multiclient exec ./bin/syz-manager -- -config=./cfgs/isolated.cfg
+
+sudo /home/parallels/Downloads/GoLand-2024.1/plugins/go-plugin/lib/dlv/linux/dlv --listen=:2346 --headless=true --api-version=2 --accept-multiclient exec ./bin/syz-manager -- -config=./cfgs/my.cfg
 ```
 
 2. attach

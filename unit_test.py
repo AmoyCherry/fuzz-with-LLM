@@ -1,10 +1,11 @@
 from torch import fill
-from transformers import AutoModelForMaskedLM, AutoModelForCausalLM, top_k_top_p_filtering, pipeline
+from transformers import AutoModelForMaskedLM, AutoModelForCausalLM, pipeline
 import torch
 
 import unittest
 
 import utils
+from syzLLM_server import highest_power_of_2
 from syz_tokenizer import SyzTokenizer
 from utils import ModelPath
 
@@ -36,11 +37,11 @@ class TestSyzTokenizer(unittest.TestCase):
         self.model = None
 
     def GenerateNextTokenFromMask(self, sequence):
-        input_ids_tensor = self.tokenizer.tokenize_sequence(sequence, return_tensors="pt")
+        input_ids_tensor = self.tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=min(128, highest_power_of_2(len(sequence) + 2)*2))
         input_ids = input_ids_tensor.data['input_ids']
         mask_token_index = torch.where(input_ids == 142831)[1]
         mask_token_logits = self.mask_model(input_ids).logits[0, mask_token_index, :]
-        top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
+        top_5_tokens = torch.topk(mask_token_logits, 20, dim=1).indices[0].tolist()
         syscalls = []
         for token in top_5_tokens:
             syscalls.append(self.tokenizer.decode([token]))

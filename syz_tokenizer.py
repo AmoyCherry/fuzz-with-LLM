@@ -52,7 +52,7 @@ class SyzTokenizer:
     def decode_token(self, tokens: []):
         return self.tokenizer.decode(tokens)
 
-    def mask_token_id(self):
+    def mask_token(self):
         return self.tokenizer.mask_token_id()
 
     def vocab_size(self):
