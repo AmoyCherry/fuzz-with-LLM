@@ -1,11 +1,13 @@
 import torch
+from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 from transformers import RobertaForMaskedLM, RobertaConfig, DistilBertForMaskedLM, DistilBertConfig
 from pathlib import Path
 
 from syz_tokenizer import SyzTokenizer
-from utils import ModelPath
+from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
+    VALIDATION_SPLIT_PERCENTAGE, MAX_POSITION_EMBEDDINGS, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -24,9 +26,34 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_dataloader(syzTokenizer: SyzTokenizer):
     encodings = get_encodings_from_tokenfile(syzTokenizer)
-    dataset = Dataset(encodings)
-    loader = torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True)
-    return loader
+    full_dataset = Dataset(encodings)
+    # Calculate the number of samples to include in each set
+    train_size = int((1 - VALIDATION_SPLIT_PERCENTAGE) * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+
+    # Randomly split the dataset into training and validation datasets
+    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+
+    # Create the training and validation dataloaders
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
+        prefetch_factor=PREFETCH_FACTOR
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
+        prefetch_factor=PREFETCH_FACTOR
+    )
+
+    return train_loader, val_loader
 
 
 def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
@@ -63,10 +90,10 @@ class SyzLLMTrainer:
 
         distilbert_config = DistilBertConfig(
             vocab_size=self.tokenizer.vocab_size(),
-            max_position_embeddings=256,
-            dropout=0.3,
-            attention_dropout=0.2,
-            qa_dropout=0.2
+            max_position_embeddings=MAX_POSITION_EMBEDDINGS,
+            dropout=DROPOUT,
+            attention_dropout=ATTENTION_DROPOUT,
+            qa_dropout=QA_DROPOUT
         )
         self.model = DistilBertForMaskedLM(distilbert_config)
 
@@ -80,25 +107,43 @@ class SyzLLMTrainer:
         else:
             self.device = torch.device('cpu')
         print(f"Using device: {self.device}")
-        # and move our model over to the selected device
+        # move our model over to the selected device
         self.model.to(self.device)
 
-    def train(self):
+    def validate(self, validation_loader):
+        self.model.eval()  # set model to evaluation mode
+        validation_loss = 0.0
+
+        with torch.no_grad():
+            for batch in validation_loader:
+                # Same process as training to get inputs and labels
+                input_ids = batch['input_ids'].to(self.device)
+                attention_mask = batch['attention_mask'].to(self.device)
+                labels = batch['labels'].to(self.device)
+
+                outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+                loss = outputs.loss
+                validation_loss += loss.item()
+
+        validation_loss /= len(validation_loader)
+        return validation_loss
+
+    def train(self, train_loader, validation_loader):
         self.setup_device()
-        # activate training mode
         self.model.train()
-        # initialize optimizer
-        optim = torch.optim.AdamW(self.model.parameters(), lr=1e-4)
+
+        optim = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+
+        best_validation_loss = float('inf')  # Keep track of the best validation loss
 
         writer = SummaryWriter()
         global_step = 0
 
-        epochs = 2
+        epochs = EPOCHS
 
-        loader = get_dataloader(self.tokenizer)
         for epoch in range(epochs):
             # setup loop with TQDM and dataloader
-            loop = tqdm(loader, leave=True)
+            loop = tqdm(train_loader, leave=True)
             for batch in loop:
                 # initialize calculated gradients (from prev step)
                 optim.zero_grad()
@@ -120,6 +165,16 @@ class SyzLLMTrainer:
                 writer.add_scalar('Train/loss', loss.item(), global_step)
                 global_step += 1  # Increment the global step
 
+            # Validation Loop
+            validation_loss = self.validate(validation_loader)
+            print(f"Validation loss for epoch {epoch}: {validation_loss}")
+            writer.add_scalar('Validation/loss', validation_loss, global_step)
+
+            # Save the model if validation loss has improved
+            if validation_loss < best_validation_loss:
+                best_validation_loss = validation_loss
+                self.model.save_pretrained(ModelPath + "_best")
+
         writer.close()
         print('training done')
         self.model.save_pretrained(ModelPath)
@@ -127,4 +182,5 @@ class SyzLLMTrainer:
 
 if __name__ == "__main__":
     syzLLM_trainer = SyzLLMTrainer()
-    syzLLM_trainer.train()
+    train_loader, validation_loader = get_dataloader(syzLLM_trainer.tokenizer)
+    syzLLM_trainer.train(train_loader, validation_loader)

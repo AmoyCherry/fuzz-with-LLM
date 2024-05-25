@@ -1,0 +1,18 @@
+{
+  "training": {
+    "batch_size": 16,
+    "epochs": 2,
+    "learning_rate": 1e-4,
+    "validation_split_percentage": 0.2
+  },
+  "model": {
+    "max_position_embeddings": 256,
+    "dropout": 0.3,
+    "attention_dropout": 0.2,
+    "qa_dropout": 0.2
+  },
+  "dataloader": {
+    "num_workers": 4,
+    "prefetch_factor": 2
+  }
+}
