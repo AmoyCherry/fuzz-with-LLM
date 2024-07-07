@@ -1,10 +1,15 @@
 import torch
+from torch.utils.data import random_split
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from transformers import RobertaForMaskedLM, RobertaConfig
+from transformers import RobertaForMaskedLM, RobertaConfig, DistilBertForMaskedLM, DistilBertConfig
 from pathlib import Path
 
 from syz_tokenizer import SyzTokenizer
-from utils import ModelPath
+from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
+    VALIDATION_SPLIT_PERCENTAGE, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT, \
+    Distil_MAX_POSITION_EMBEDDINGS, BERT_MAX_POSITION_EMBEDDINGS, HIDDEN_SIZE, NUM_ATTENTION_HEADS, NUM_HIDDEN_LAYERS, \
+    TYPE_VOCAB_SIZE
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -23,16 +28,41 @@ class Dataset(torch.utils.data.Dataset):
 
 def get_dataloader(syzTokenizer: SyzTokenizer):
     encodings = get_encodings_from_tokenfile(syzTokenizer)
-    dataset = Dataset(encodings)
-    loader = torch.utils.data.DataLoader(dataset, batch_size=16, shuffle=True)
-    return loader
+    full_dataset = Dataset(encodings)
+    # Calculate the number of samples to include in each set
+    train_size = int((1 - VALIDATION_SPLIT_PERCENTAGE) * len(full_dataset))
+    val_size = len(full_dataset) - train_size
+
+    # Randomly split the dataset into training and validation datasets
+    train_dataset, val_dataset = random_split(full_dataset, [train_size, val_size])
+
+    # Create the training and validation dataloaders
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=True,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
+        prefetch_factor=PREFETCH_FACTOR
+    )
+
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE,
+        shuffle=False,
+        num_workers=NUM_WORKERS,
+        pin_memory=True,
+        prefetch_factor=PREFETCH_FACTOR
+    )
+
+    return train_loader, val_loader
 
 
 def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     batch = []
     for i in Path("./tokens/").glob('**/*.txt'):
         batch += syzTokenizer.get_sequence_batch(i)
-    print("tokens size: ", len(batch))
+    print("sequences size: ", len(batch))
     labels = torch.tensor([x.input_ids for x in batch])
     mask = torch.tensor([x.attention_mask for x in batch])
 
@@ -41,16 +71,14 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     # create random array of floats with equal dims to input_ids
     rand = torch.rand(input_ids.shape)
     # mask random 15% where token is not 0 [PAD], 1 [CLS], or 2 [SEP]
-    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (
-            input_ids != syzTokenizer.tokenizer.cls_token_id) * (
-                       input_ids != syzTokenizer.tokenizer.sep_token_id)
+    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (input_ids != syzTokenizer.tokenizer.cls_token_id) * (input_ids != syzTokenizer.tokenizer.sep_token_id)
     # loop through each row in input_ids tensor (cannot do in parallel)
     for j in range(input_ids.shape[0]):
         # get indices of mask positions from mask array
         selection = torch.flatten(mask_arr[j].nonzero()).tolist()
         temp = input_ids[j, selection]
         # mask input_ids
-        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id  # our custom [MASK] token == 3
+        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id
 
     print(input_ids.shape)
 
@@ -61,35 +89,82 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
 class SyzLLMTrainer:
     def __init__(self):
         self.tokenizer = SyzTokenizer()
-        config = RobertaConfig(
-            vocab_size=self.tokenizer.vocab_size(),  # we align this to the tokenizer vocab_size
-            max_position_embeddings=514,
-            hidden_size=768,
-            num_attention_heads=12,
-            num_hidden_layers=6,
-            type_vocab_size=1
+
+        bert_config = RobertaConfig(
+            vocab_size=self.tokenizer.vocab_size(),
+            max_position_embeddings=BERT_MAX_POSITION_EMBEDDINGS,
+            hidden_size=HIDDEN_SIZE,
+            num_attention_heads=NUM_ATTENTION_HEADS,
+            num_hidden_layers=NUM_HIDDEN_LAYERS,
+            type_vocab_size=TYPE_VOCAB_SIZE
         )
-        self.model = RobertaForMaskedLM(config)
+        self.model = RobertaForMaskedLM(bert_config)
+
+        distilbert_config = DistilBertConfig(
+            vocab_size=self.tokenizer.vocab_size(),
+            max_position_embeddings=Distil_MAX_POSITION_EMBEDDINGS,
+            dropout=DROPOUT,
+            attention_dropout=ATTENTION_DROPOUT,
+            qa_dropout=QA_DROPOUT
+        )
+        #self.model = DistilBertForMaskedLM(distilbert_config)
+
         self.device = None
 
     def setup_device(self):
-        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-        # and move our model over to the selected device
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
+        print(f"Using device: {self.device}")
+        # move our model over to the selected device
         self.model.to(self.device)
 
-    def train(self):
+    def validate(self, validation_loader, writer):
+        self.model.eval()  # set model to evaluation mode
+        validation_loss = 0.0
+
+        global_step = 0
+
+        with torch.no_grad():
+            loop = tqdm(validation_loader, leave=True)
+            for batch in loop:
+                # Same process as training to get inputs and labels
+                input_ids = batch['input_ids'].to(self.device)
+                attention_mask = batch['attention_mask'].to(self.device)
+                labels = batch['labels'].to(self.device)
+
+                outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+                loss = outputs.loss
+
+                loop.set_description('Validation ')
+                loop.set_postfix(loss=loss.item())
+                validation_loss += loss.item()
+                writer.add_scalar('Validation/loss', loss.item(), global_step)
+                global_step += 1
+
+        if len(validation_loader) != 0:
+            validation_loss /= len(validation_loader)
+        return validation_loss
+
+    def train(self, train_loader, validation_loader):
         self.setup_device()
-        # activate training mode
         self.model.train()
-        # initialize optimizer
-        optim = torch.optim.AdamW(self.model.parameters(), lr=1e-4)
 
-        epochs = 2
+        optim = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
 
-        loader = get_dataloader(self.tokenizer)
+        best_validation_loss = float('inf')  # Keep track of the best validation loss
+
+        epochs = EPOCHS
+
         for epoch in range(epochs):
             # setup loop with TQDM and dataloader
-            loop = tqdm(loader, leave=True)
+            writer = SummaryWriter()
+            global_step = 0
+
+            loop = tqdm(train_loader, leave=True)
             for batch in loop:
                 # initialize calculated gradients (from prev step)
                 optim.zero_grad()
@@ -108,11 +183,19 @@ class SyzLLMTrainer:
                 # print relevant info to progress bar
                 loop.set_description(f'Epoch {epoch}')
                 loop.set_postfix(loss=loss.item())
+                writer.add_scalar('Train/loss', loss.item(), global_step)
+                global_step += 1  # Increment the global step
+
+            self.model.save_pretrained(ModelPath + f"_{epoch}")
+
+            # Validation Loop
+            if len(validation_loader) == 0:
+                validation_loss = self.validate(validation_loader, writer)
+                print(f"Validation loss for epoch {epoch}: {validation_loss}")
 
         print('training done')
-        self.model.save_pretrained(ModelPath)
-
 
 if __name__ == "__main__":
     syzLLM_trainer = SyzLLMTrainer()
-    syzLLM_trainer.train()
+    train_loader, validation_loader = get_dataloader(syzLLM_trainer.tokenizer)
+    syzLLM_trainer.train(train_loader, validation_loader)

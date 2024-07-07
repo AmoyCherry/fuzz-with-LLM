@@ -5,7 +5,7 @@ from transformers import AutoModelForMaskedLM
 import torch
 
 from syz_tokenizer import SyzTokenizer
-from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK
+from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath
 
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
@@ -20,7 +20,7 @@ def extract_syscall_name(syscall):
 
 
 def init_env():
-    with open(VocabFilePath, 'r') as file:
+    with open(SyzTokenizerVocabFilePath, 'r') as file:
         for line in file:
             syscall = line.strip()
             syscall_name = extract_syscall_name(syscall)
@@ -44,16 +44,46 @@ def validate_syscall(syscall_list):
     return new_syscall_list
 
 
-def generate_next_syscall(sequence):
-    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt")
+def highest_power_of_2(N):
+    # if N is a power of two simply return it
+    if (not (N & (N - 1))):
+        return N
+
+    # else set only the most significant bit
+    return 0x8000000000000000 >> (64 - N.bit_length())
+
+
+def fill_mask(sequence):
+    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 211693)[1]
+    mask_token_index = torch.where(input_ids == 264750)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
-    top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
+    top_tokens = torch.topk(mask_token_logits, 6, dim=1).indices[0].tolist()
     syscalls = []
-    for token in top_5_tokens:
-        syscalls.append(tokenizer.decode([token]))
+    for token in top_tokens:
+        call = tokenizer.decode([token])
+        # todo! re-training without image
+        if "image" in call:
+            continue
+        syscalls.append(call)
     return syscalls
+
+
+def pick(n):
+    probability = random.random()
+    if probability < 0.5:
+        return 0
+    elif probability < 0.9:
+        return min(1, n - 1)
+    elif probability < 0.95:
+        return min(2, n - 1)
+    elif probability < 0.96:
+        return min(3, n - 1)
+    elif probability < 0.97:
+        return min(4, n - 1)
+    else:
+        return min(5, n - 1)
+
 
 
 app = Flask(__name__)
@@ -62,7 +92,7 @@ app = Flask(__name__)
 @app.route('/', methods=['POST'])
 def handle_post_request():
     syscall_json = request.get_json()
-    print("syscallsData: ", syscall_json)
+    #print("syscallsData: ", syscall_json)
 
     syscall_list = []
     for key, value in syscall_json.items():
@@ -70,12 +100,14 @@ def handle_post_request():
             syscall_list = value
     syscall_list = validate_syscall(syscall_list)
 
-    sequence = [CLS] + syscall_list + [SEP]
-    print("sequence: ", sequence, "\n")
-    next_syscalls = generate_next_syscall(sequence)
+    #sequence = [CLS] + syscall_list + [SEP]
+    sequence = syscall_list
+    #print("sequence: ", sequence, "\n")
+    next_syscalls = fill_mask(sequence)
 
     print("next_syscalls: ", next_syscalls, "\n")
-    response = {'State': 0, 'Syscall': next_syscalls[0]}
+    idx = pick(len(syscall_list))
+    response = {'State': 0, 'Syscall': next_syscalls[idx]}
     return jsonify(response)
 
 

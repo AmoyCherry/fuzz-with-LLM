@@ -6,10 +6,27 @@
 >
 > [research based on syzkaller (Organized by Google)](https://github.com/google/syzkaller/blob/master/docs/research.md)
 
-## Goals
 
-By **TRAINING** an LLM to Generate and systhesis high-quality seeds (syscall sequences) which better than manual-ruled ones from the original syzkaller.
+## Results
 
+### Coverage over time without corpus
+> System: Ubuntu-22.0
+> * Memory: 8 G
+> * CPU: 4 cores, Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+> 
+> 
+> VM Kernel Version: linux-5.15
 
+1 VM (2 vCPUs and 4G RAM) for 24 hours.
+![test](./documents/assets/expt-05-02.png)
 
-How to test the accuracy of the model? 
+### Coverage over executed programs without corpus
+> System: Ubuntu-22.0
+> * Memory: 8 G
+> * CPUs: 4, Intel(R) Core(TM) i7-9750H CPU @ 2.60GHz
+> 
+> 
+> VM Kernel Version: linux-5.15
+
+1 VM (2 vCPUs and 4G RAM) for 24 hours.
+![test](./documents/assets/expt-0502-2.png)

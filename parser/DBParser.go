@@ -13,7 +13,7 @@ type Parser struct {
 }
 
 const TokenFilePath = "./tokens/tokens_"
-const DBCorpusPath = "./parser/corpus.db"
+const DBCorpusPath = "./parser/old-corpus/corpus.db"
 const TokenFileSize = 256
 const VocabFilePath = "./vocab/vocab.txt"
 
@@ -62,8 +62,7 @@ func (parser *Parser) Parse() {
 	log.Logf(0, "total number of sequences (traces): %v", totalCount)
 }
 
-func (Parser *Parser) CreatePathIfNotExist(path string) {
-
+func (parser *Parser) CreatePathIfNotExist(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		err := os.MkdirAll(path, os.ModePerm)
 		if err != nil {
