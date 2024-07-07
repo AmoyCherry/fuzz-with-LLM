@@ -16,12 +16,13 @@ syzllm = ['syzllm-0319-1.txt',
           'expt-syzllm-0322-1.txt',
           'expt-syzllm-0322-2.txt',
           'expt-syzllm-0323-1.txt',
-          'expt-syzllm-0324-1.txt']
+          'expt-syzllm-0324-1.txt',
+          'expt-syzllm-0502-1.txt']
 
 
 SyzLLM_label = 'SyzLLM'
 SyzLLM_broken_label = 'SyzLLM-broken'
-SyzLLM_pure_label = 'SyzLLM-pure'
+SyzLLM_pure_label = 'SyzLLM-newest'
 syzkaller_label = 'Syzkaller'
 
 color_map = {
@@ -126,6 +127,7 @@ if __name__ == '__main__':
         #Line(table_path[2], choiceTable_label),
         Line(syzkaller[1], syzkaller_label),
         Line(syzllm[7], SyzLLM_label),
+        Line(syzllm[8], SyzLLM_pure_label)
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)

@@ -7,7 +7,9 @@ from pathlib import Path
 
 from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
-    VALIDATION_SPLIT_PERCENTAGE, MAX_POSITION_EMBEDDINGS, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT
+    VALIDATION_SPLIT_PERCENTAGE, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT, \
+    Distil_MAX_POSITION_EMBEDDINGS, BERT_MAX_POSITION_EMBEDDINGS, HIDDEN_SIZE, NUM_ATTENTION_HEADS, NUM_HIDDEN_LAYERS, \
+    TYPE_VOCAB_SIZE
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -88,14 +90,24 @@ class SyzLLMTrainer:
     def __init__(self):
         self.tokenizer = SyzTokenizer()
 
+        bert_config = RobertaConfig(
+            vocab_size=self.tokenizer.vocab_size(),
+            max_position_embeddings=BERT_MAX_POSITION_EMBEDDINGS,
+            hidden_size=HIDDEN_SIZE,
+            num_attention_heads=NUM_ATTENTION_HEADS,
+            num_hidden_layers=NUM_HIDDEN_LAYERS,
+            type_vocab_size=TYPE_VOCAB_SIZE
+        )
+        self.model = RobertaForMaskedLM(bert_config)
+
         distilbert_config = DistilBertConfig(
             vocab_size=self.tokenizer.vocab_size(),
-            max_position_embeddings=MAX_POSITION_EMBEDDINGS,
+            max_position_embeddings=Distil_MAX_POSITION_EMBEDDINGS,
             dropout=DROPOUT,
             attention_dropout=ATTENTION_DROPOUT,
             qa_dropout=QA_DROPOUT
         )
-        self.model = DistilBertForMaskedLM(distilbert_config)
+        #self.model = DistilBertForMaskedLM(distilbert_config)
 
         self.device = None
 
@@ -110,12 +122,15 @@ class SyzLLMTrainer:
         # move our model over to the selected device
         self.model.to(self.device)
 
-    def validate(self, validation_loader):
+    def validate(self, validation_loader, writer):
         self.model.eval()  # set model to evaluation mode
         validation_loss = 0.0
 
+        global_step = 0
+
         with torch.no_grad():
-            for batch in validation_loader:
+            loop = tqdm(validation_loader, leave=True)
+            for batch in loop:
                 # Same process as training to get inputs and labels
                 input_ids = batch['input_ids'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
@@ -123,9 +138,15 @@ class SyzLLMTrainer:
 
                 outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
                 loss = outputs.loss
-                validation_loss += loss.item()
 
-        validation_loss /= len(validation_loader)
+                loop.set_description('Validation ')
+                loop.set_postfix(loss=loss.item())
+                validation_loss += loss.item()
+                writer.add_scalar('Validation/loss', loss.item(), global_step)
+                global_step += 1
+
+        if len(validation_loader) != 0:
+            validation_loss /= len(validation_loader)
         return validation_loss
 
     def train(self, train_loader, validation_loader):
@@ -136,13 +157,13 @@ class SyzLLMTrainer:
 
         best_validation_loss = float('inf')  # Keep track of the best validation loss
 
-        writer = SummaryWriter()
-        global_step = 0
-
         epochs = EPOCHS
 
         for epoch in range(epochs):
             # setup loop with TQDM and dataloader
+            writer = SummaryWriter()
+            global_step = 0
+
             loop = tqdm(train_loader, leave=True)
             for batch in loop:
                 # initialize calculated gradients (from prev step)
@@ -165,20 +186,14 @@ class SyzLLMTrainer:
                 writer.add_scalar('Train/loss', loss.item(), global_step)
                 global_step += 1  # Increment the global step
 
+            self.model.save_pretrained(ModelPath + f"_{epoch}")
+
             # Validation Loop
-            validation_loss = self.validate(validation_loader)
-            print(f"Validation loss for epoch {epoch}: {validation_loss}")
-            writer.add_scalar('Validation/loss', validation_loss, global_step)
+            if len(validation_loader) == 0:
+                validation_loss = self.validate(validation_loader, writer)
+                print(f"Validation loss for epoch {epoch}: {validation_loss}")
 
-            # Save the model if validation loss has improved
-            if validation_loss < best_validation_loss:
-                best_validation_loss = validation_loss
-                self.model.save_pretrained(ModelPath + "_best")
-
-        writer.close()
         print('training done')
-        self.model.save_pretrained(ModelPath)
-
 
 if __name__ == "__main__":
     syzLLM_trainer = SyzLLMTrainer()

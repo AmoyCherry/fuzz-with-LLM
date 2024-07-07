@@ -53,14 +53,14 @@ def highest_power_of_2(N):
     return 0x8000000000000000 >> (64 - N.bit_length())
 
 
-def generate_next_syscall(sequence):
-    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=min(128, highest_power_of_2(len(sequence) + 2)*2))
+def fill_mask(sequence):
+    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 142831)[1]
+    mask_token_index = torch.where(input_ids == 264750)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
-    top_5_tokens = torch.topk(mask_token_logits, 6, dim=1).indices[0].tolist()
+    top_tokens = torch.topk(mask_token_logits, 6, dim=1).indices[0].tolist()
     syscalls = []
-    for token in top_5_tokens:
+    for token in top_tokens:
         call = tokenizer.decode([token])
         # todo! re-training without image
         if "image" in call:
@@ -103,7 +103,7 @@ def handle_post_request():
     #sequence = [CLS] + syscall_list + [SEP]
     sequence = syscall_list
     #print("sequence: ", sequence, "\n")
-    next_syscalls = generate_next_syscall(sequence)
+    next_syscalls = fill_mask(sequence)
 
     print("next_syscalls: ", next_syscalls, "\n")
     idx = pick(len(syscall_list))

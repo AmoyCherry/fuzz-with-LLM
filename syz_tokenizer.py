@@ -42,6 +42,7 @@ class SyzTokenizer:
         if Path(utils.TokenizerPath).exists() is False:
             train_tokenizer_from_bert()
         self.tokenizer = BertTokenizer.from_pretrained(utils.TokenizerPath)
+        self.deduplication_set = set()
 
     def tokenizer(self):
         return self.tokenizer
@@ -65,15 +66,15 @@ class SyzTokenizer:
         return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=max_length_arg, padding='max_length',
                                           truncation=True, return_tensors=return_tensors)
 
+
     def get_sequence_batch(self, filename):
         batch = []
-        deduplication_set = set()
         with open(filename) as file:
             sequences = file.read().split('[SEP]\n')
             for sequence in sequences:
-                if sequence in deduplication_set:
+                if sequence in self.deduplication_set:
                     continue
-                deduplication_set.add(sequence)
+                self.deduplication_set.add(sequence)
 
                 if sequence == '':
                     continue
