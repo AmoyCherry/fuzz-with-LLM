@@ -227,3 +227,14 @@ Every SyzLLM request cost about 65ms.
 1. Communication
    1. Async request;
    2. Using Get instead of Post;
+
+
+
+## Model
+
+### Diversity
+
+**Temperature and Top-k sampling**
+
+**Nucleus Sampling (Top-p Sampling)**
+

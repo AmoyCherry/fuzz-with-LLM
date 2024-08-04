@@ -1,20 +1,21 @@
 {
   "training": {
-    "batch_size": 16,
+    "batch_size": 2,
     "epochs": 2,
-    "learning_rate": 1e-5,
+    "learning_rate": 1e-6,
     "validation_split_percentage": 0
   },
+  "selectedModel": "bert",
   "model": {
     "bert": {
-      "hidden_size": 768,
-      "num_attention_heads": 12,
+      "hidden_size": 64,
+      "num_attention_heads": 8,
       "num_hidden_layers": 6,
       "type_vocab_size": 1,
       "max_position_embeddings": 256
     },
     "distilbert": {
-      "dropout": 0.4,
+      "dropout": 0.7,
       "attention_dropout": 0.3,
       "qa_dropout": 0.3,
       "max_position_embeddings": 256
