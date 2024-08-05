@@ -1,3 +1,22 @@
+### distil
+
+| batch_size | learning_rate | dropout |
+| :--------- | ------------- | ------- |
+|            |               |         |
+|            |               |         |
+|            |               |         |
+
+### bert
+
+|               result               | batch_size | learning_rate | hidden_size | num_attention_heads |      |
+| :--------------------------------: | :--------: | :-----------: | :---------: | :-----------------: | :--: |
+|     ❌ ❌ Same answers at top1.      |     2      |     1e-5      |     256     |         16          |      |
+|                 ✅❌                 |     2      |     1e-6      |     128     |          8          |      |
+|     ❌ ❌ Same answers at top1.      |     2      |     1e-5      |     64      |          4          |      |
+| ❌ [PAD]    ❌ Same answers at top1. |     2      |     1e-6      |     64      |          8          |      |
+
+
+
 ## Choose a transformer
 
 > ### Requirements

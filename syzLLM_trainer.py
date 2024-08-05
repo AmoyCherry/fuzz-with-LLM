@@ -9,7 +9,7 @@ from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
     VALIDATION_SPLIT_PERCENTAGE, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT, \
     Distil_MAX_POSITION_EMBEDDINGS, BERT_MAX_POSITION_EMBEDDINGS, HIDDEN_SIZE, NUM_ATTENTION_HEADS, NUM_HIDDEN_LAYERS, \
-    TYPE_VOCAB_SIZE
+    TYPE_VOCAB_SIZE, SELECTEDMODEL, BERT
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -98,7 +98,6 @@ class SyzLLMTrainer:
             num_hidden_layers=NUM_HIDDEN_LAYERS,
             type_vocab_size=TYPE_VOCAB_SIZE
         )
-        self.model = RobertaForMaskedLM(bert_config)
 
         distilbert_config = DistilBertConfig(
             vocab_size=self.tokenizer.vocab_size(),
@@ -107,17 +106,23 @@ class SyzLLMTrainer:
             attention_dropout=ATTENTION_DROPOUT,
             qa_dropout=QA_DROPOUT
         )
-        #self.model = DistilBertForMaskedLM(distilbert_config)
+
+        print("selected model: ", SELECTEDMODEL)
+        if SELECTEDMODEL == BERT:
+            self.model = RobertaForMaskedLM(bert_config)
+        else:
+            self.model = DistilBertForMaskedLM(distilbert_config)
 
         self.device = None
 
     def setup_device(self):
-        if torch.cuda.is_available():
-            self.device = torch.device('cuda')
-        elif torch.backends.mps.is_available():
-            self.device = torch.device('mps')
-        else:
-            self.device = torch.device('cpu')
+        # if torch.cuda.is_available():
+        #     self.device = torch.device('cuda')
+        # elif torch.backends.mps.is_available():
+        #     self.device = torch.device('mps')
+        # else:
+        #     self.device = torch.device('cpu')
+        self.device = torch.device('cpu')
         print(f"Using device: {self.device}")
         # move our model over to the selected device
         self.model.to(self.device)
