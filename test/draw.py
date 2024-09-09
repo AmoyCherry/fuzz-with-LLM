@@ -8,7 +8,7 @@ syzLLM_ncalls_broken_path = ['./syzllm-ncalls-broken-1.txt', 'syzllm-ncalls-brok
 syzLLM_pure_path = ['./syzllm1.txt']
 table_path = ['./table1.txt', './table2.txt', './table3.txt']
 
-syzkaller = ['syzkaller-0319-1.txt', 'expt-log.txt']
+syzkaller = ['syzkaller-0319-1.txt', 'expt-log.txt', './temp/expt-log.txt']
 syzllm = ['syzllm-0319-1.txt',
           'expt-syzllm-0320.txt',
           'expt-syzllm-0321.txt',
@@ -17,19 +17,31 @@ syzllm = ['syzllm-0319-1.txt',
           'expt-syzllm-0322-2.txt',
           'expt-syzllm-0323-1.txt',
           'expt-syzllm-0324-1.txt',
-          'expt-syzllm-0502-1.txt']
+          'expt-syzllm-0502-1.txt',
+          'expt-syzllm-0724.txt',
+          'expt-syzllm-0725.txt',
+          'expt-syzllm-0726.txt',
+          'expt-syzllm-0728.txt',
+          'expt-distil-BS2-1e5.txt',
+          'expt.txt',
+          './temp/expt-syzllm-0324-1.txt',
+          './temp/expt-res-sampling.txt',
+          './temp/expt-res.txt',
+          'expt-res.txt',
+          'expt-res-sampling-0817.txt'
+          ]
 
 
 SyzLLM_label = 'SyzLLM'
-SyzLLM_broken_label = 'SyzLLM-broken'
-SyzLLM_pure_label = 'SyzLLM-newest'
+SyzLLM_broken_label = 'ResInline'
+SyzLLM_pure_label = 'ResInline-SamplingSelector'
 syzkaller_label = 'Syzkaller'
 
 color_map = {
-    SyzLLM_label : 'r--',
-    syzkaller_label : 'g--',
-    SyzLLM_broken_label : 'b--',
-    SyzLLM_pure_label : 'c--'
+    SyzLLM_label: 'r--',
+    syzkaller_label: 'g--',
+    SyzLLM_broken_label: 'b--',
+    SyzLLM_pure_label: 'k-'
 }
 
 
@@ -127,11 +139,21 @@ if __name__ == '__main__':
         #Line(table_path[2], choiceTable_label),
         Line(syzkaller[1], syzkaller_label),
         Line(syzllm[7], SyzLLM_label),
-        Line(syzllm[8], SyzLLM_pure_label)
+        #Line(syzllm[8], SyzLLM_pure_label),
+        #Line(syzllm[13], SyzLLM_broken_label),
+        Line(syzllm[18], SyzLLM_broken_label),
+        Line(syzllm[19], SyzLLM_pure_label)
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
     ]
 
+    # lines = [
+    #     Line(syzkaller[2], syzkaller_label),
+    #     Line(syzllm[15], SyzLLM_label),
+    #     Line(syzllm[16], SyzLLM_pure_label),
+    #     Line(syzllm[17], SyzLLM_broken_label)
+    # ]
+
     draw_lines_execute(lines)
-    #draw_lines_time(lines)
+    draw_lines_time(lines)

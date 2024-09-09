@@ -7,6 +7,7 @@ VocabFilePath = "./vocab/vocab.txt"
 SyzTokenizerVocabFilePath = "./SyzTokenizer/vocab.txt"
 ModelPath = "SyzLLM"
 ConfigPath = "./SyzLLM_training_config.json"
+ServerLogPath = "./log/"
 
 CLS = "[CLS]"
 SEP = "[SEP]"

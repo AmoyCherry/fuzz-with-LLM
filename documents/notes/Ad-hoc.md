@@ -1,3 +1,15 @@
+## syzkaller
+
+### mem alloc
+
+ <= 64^4
+
+
+
+
+
+
+
 Knowledge Transfer
 
 Pre-trained distillation
@@ -17,6 +29,12 @@ Application:
 
 1. Serving as a mutator;
 2. distill high quality seeds.
+
+
+
+```shell
+./run.sh &> rxpt.txt
+```
 
 
 
@@ -79,7 +97,7 @@ scp -r directory/
 ```
 
 ```
-scp -r parallels@10.211.55.4:/home/parallels/gopath/syzkaller_for_SyzLLM/syz-manager/data ./
+scp -r parallels@10.211.55.4:/home/parallels/gopath/syzkaller_for_SyzLLM/syz-manager/data/addr.txt ./data/
 ```
 
 

@@ -1,6 +1,16 @@
-train a model which programs only contains syscall name.
+### Reduce token size
 
+1. I believe the `$desctiption` part in syscalls is just a log for debugging without any functionality. I would normalize it when preprocessing.
 
+2. Remove step increments for different calls for addresses.
+3. change `0x111` to `0x1`.
+
+> notes-Aug-19-2024
+>
+> 1. top k -> return all k calls
+>
+> 2. stabilize res inline
+> 3. DARPA
 
 ## Preprocessing
 

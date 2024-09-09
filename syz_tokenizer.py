@@ -1,30 +1,8 @@
-import os
 from pathlib import Path
-
-import tensorflow as tf
-from transformers import GPT2Tokenizer, GPT2Config, TFGPT2LMHeadModel
-from transformers import WEIGHTS_NAME, CONFIG_NAME
-from tokenizers import Tokenizer
-from tokenizers.models import BPE
-from tokenizers.decoders import ByteLevel as ByteLevelDecoder
-from tokenizers.normalizers import NFD, Sequence
-from tokenizers.trainers import BpeTrainer
-from tokenizers.pre_tokenizers import ByteLevel
 
 from transformers import BertTokenizerFast, BertTokenizer
 
 import utils
-
-
-def train_tokenizer_from_gpt():
-    dummy = GPT2Tokenizer(utils.DummyVocabFilePath)
-    os.remove(utils.DummyVocabFilePath)
-    dummy.save_pretrained("vocab")
-    print("extract vocabulary, ignore the above 'holes'")
-
-    gpt2_tokenizer = GPT2Tokenizer(utils.GPT2TokenizerPath)
-    gpt2_tokenizer.save_pretrained(utils.GPT2TokenizerPath)
-    print("save SyzTokenizerFromBert")
 
 
 def train_tokenizer_from_bert():
@@ -63,8 +41,7 @@ class SyzTokenizer:
         return self.tokenizer.convert_tokens_to_ids(word)
 
     def tokenize_sequence(self, sequence: list[str], return_tensors=None, max_length_arg=128):
-        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=max_length_arg, padding='max_length',
-                                          truncation=True, return_tensors=return_tensors)
+        return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=max_length_arg, padding='max_length', truncation=True, return_tensors=return_tensors)
 
 
     def get_sequence_batch(self, filename):
