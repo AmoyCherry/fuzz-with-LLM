@@ -1,4 +1,9 @@
+import datetime
+import difflib
+import queue
 import random
+import threading
+import time
 
 from flask import Flask, request, jsonify
 from transformers import AutoModelForMaskedLM
@@ -7,11 +12,31 @@ import torch.nn.functional as F
 from enum import Enum
 
 from syz_tokenizer import SyzTokenizer
-from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath
+from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath, ServerLogPath
 
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
 syscall_name_dict = {}
+
+
+class LogRecord:
+    def __init__(self, t_num, c_num):
+        self.tokenize_num = t_num
+        self.call_num = c_num
+
+
+log_queue = queue.Queue()
+
+
+def log_worker(log_queue):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    while True:
+        if log_queue.empty():
+            time.sleep(1.0)
+            continue
+        record = log_queue.get()
+        with open(ServerLogPath + f"{timestamp}.txt", 'a') as f:
+            f.write(f"{record.tokenize_num} {record.call_num}\n")
 
 
 def extract_syscall_name(syscall):
@@ -28,21 +53,47 @@ def init_env():
             syscall_name = extract_syscall_name(syscall)
             syscall_name_dict.setdefault(syscall_name, list()).append(syscall)
 
+    # thread = threading.Thread(target=log_worker, args=(log_queue,))
+    # thread.start()
+    print("Log thread start...")
+
+
+def find_most_similar(reference_string, strings_set):
+    # Converts the set to a list since get_close_matches expects a list.
+    strings_list = list(strings_set)
+
+    # Use get_close_matches to find the most similar string.
+    # n=1 to get the top match
+    # cutoff=0 to consider all possibilities, you can adjust this to be higher for closer matches
+    similar_list = difflib.get_close_matches(reference_string, strings_list, n=1, cutoff=0)
+
+    # If there's at least one match, return the first (and in this setup, the only) element.
+    if similar_list:
+        return similar_list[0]
+    else:
+        return None
+
 
 def validate_syscall(syscall_list):
     new_syscall_list = []
+    tokenize_num = 0
     for syscall in syscall_list:
         syscall_name = extract_syscall_name(syscall)
         if tokenizer.tokenize_word(syscall) != UNK_idx:
+            tokenize_num += 1
             new_syscall_list.append(syscall)
         elif syscall_name in syscall_name_dict:
-            # score?
             syscall_set = syscall_name_dict[syscall_name]
-            idx = random.randint(0, len(syscall_set) - 1)
-            new_syscall_list.append(syscall_set[idx])
+            similar_call = find_most_similar(syscall, syscall_set)
+            if similar_call is not None:
+                new_syscall_list.append(similar_call)
+            else:
+                idx = random.randint(0, len(syscall_set) - 1)
+                new_syscall_list.append(syscall_set[idx])
         else:
             new_syscall_list.append(UNK)
 
+    #log_queue.put(LogRecord(tokenize_num, len(syscall_list)))
     return new_syscall_list
 
 
@@ -60,15 +111,15 @@ class SamplingMethod(Enum):
     TEMPERATURE = 'temperature'
     SAMPLE_TOP_K = 'sample_top_k'
     SAMPLE_TOP_P = 'sample_top_p'
-    BEAM_SEARCH = 'beam_search'
+    #BEAM_SEARCH = 'beam_search'
 
 
-def fill_mask(sequence,
-              sampling_method=SamplingMethod.TOP_K,
-              temperature=1.0, top_k=50,
-              top_p=0.9,
-              beam_width=5, diversity_penalty=1.0):
-    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2) * 2))
+async def fill_mask(sequence,
+                    sampling_method=SamplingMethod.TOP_K,
+                    temperature=1.0, top_k=25,
+                    top_p=0.9,
+                    beam_width=5, diversity_penalty=1.0):
+    input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
     mask_token_index = torch.where(input_ids == 182605)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
@@ -91,8 +142,8 @@ def sample(logits, sampling_method, temperature=1.0, k=15, top_p=0.9, beam_width
         return sample_with_top_k(logits, k)
     elif sampling_method == SamplingMethod.SAMPLE_TOP_P:
         return sample_with_top_p(logits, top_p)
-    elif sampling_method == SamplingMethod.BEAM_SEARCH:
-        return beam_search_one_step_with_diversity(logits, beam_width, diversity_penalty)
+    #elif sampling_method == SamplingMethod.BEAM_SEARCH:
+    #    return beam_search_one_step_with_diversity(logits, beam_width, diversity_penalty)
     elif sampling_method == SamplingMethod.TOP_K:
         return top_k(logits)
     else:
@@ -138,7 +189,7 @@ def sample_with_top_p(logits, top_p=0.9):
     probs = F.softmax(logits, dim=-1)
     return torch.multinomial(probs, num_samples=1).squeeze(1)
 
-
+# NOTE! beam search seems not good enough
 def beam_search_one_step_with_diversity(logits, k=10, diversity_penalty=1.0):
     """
     Perform one step of beam search with diversity.
@@ -195,14 +246,129 @@ def pick(n):
         return min(5, n - 1)
 
 
+class CircularQueue:
+    def __init__(self, capacity=5):
+        self.queue = [0] * capacity
+        self.capacity = capacity
+        self.head = 0
+        self.tail = -1
+        self.size = 0
+
+    def enqueue(self, value):
+        if self.size < self.capacity:
+            self.tail = (self.tail + 1) % self.capacity
+            self.queue[self.tail] = value
+            self.size += 1
+        else:
+            self.tail = (self.tail + 1) % self.capacity
+            self.head = (self.head + 1) % self.capacity
+            self.queue[self.tail] = value
+
+    def get_sum(self):
+        return sum(self.queue)
+
+
+class SamplingMethodSelector:
+    def __init__(self, initial_sampling=SamplingMethod.SAMPLE_TOP_P, initial_cover_sum=3000):
+        self.covers_dict = {}
+        for method in SamplingMethod:
+            self.covers_dict[method] = CircularQueue()
+            if method == SamplingMethod.TOP_K:
+                self.covers_dict[method].enqueue(500)
+            else:
+                self.covers_dict[method].enqueue(initial_cover_sum)
+        self.sorted_algorithms = []
+        self.previous_coverage = 0
+        self.current_sampling = initial_sampling
+
+    def update_cover(self, coverage):
+        if request_counter.has_request_per_cover() is False:
+            return
+
+        diff = coverage - self.previous_coverage
+        self.previous_coverage = coverage
+
+        algorithm = self.current_sampling
+        if algorithm not in self.covers_dict:
+            self.covers_dict[algorithm] = CircularQueue()
+        queue = self.covers_dict[algorithm]
+        queue.enqueue(diff)
+
+        self.try_update_current_sampling()
+
+    def try_update_current_sampling(self):
+        if request_counter.should_reset():
+            self.update_current_sampling()
+
+    def update_current_sampling(self):
+        self.update_sorted_algorithms()
+        if self.sorted_algorithms:
+            highest_sum_algorithm, highest_sum = self.sorted_algorithms[0]
+            if highest_sum_algorithm == SamplingMethod.TOP_K and self.current_sampling == SamplingMethod.TOP_K and highest_sum <= 600:
+                self.select_random_method()
+            else:
+                self.current_sampling = highest_sum_algorithm
+
+    def update_sorted_algorithms(self):
+        sum_scores = [(algo, self.covers_dict[algo].get_sum()) for algo in self.covers_dict]
+        self.sorted_algorithms = sorted(sum_scores, key=lambda x: x[1], reverse=True)
+
+    def select_random_method(self, exclude=SamplingMethod.TOP_K):
+        choices = [method for method in SamplingMethod if method != exclude]
+        self.current_sampling = random.choice(choices)
+
+
+class RequestCounter:
+    def __init__(self):
+        self.request_counter = 0
+        self.request_counter_per_cover = 0
+
+    def count(self):
+        self.request_counter += 1
+        self.request_counter_per_cover += 1
+
+    def has_request_per_cover(self):
+        if self.request_counter_per_cover > 0:
+            self.reset_per_cover()
+            return True
+        else:
+            return False
+
+    def reset_per_cover(self):
+        self.request_counter_per_cover = 0
+
+    def reset(self):
+        self.request_counter = 0
+
+    def should_reset(self):
+        if self.request_counter > 75:
+            self.reset()
+            return True
+        else:
+            return False
+
 
 app = Flask(__name__)
 
+sample_method_selector = SamplingMethodSelector()
+request_counter = RequestCounter()
+
+
+@app.route('/cover', methods=['POST'])
+def handle_cover():
+    try:
+        cover = int(request.data.decode("utf-8"))
+        sample_method_selector.update_cover(cover)
+        return "", 200
+    except ValueError:
+        return "wrong cover!", 400
+
 
 @app.route('/', methods=['POST'])
-def handle_post_request():
+async def handle_post_request():
+    request_counter.count()
+
     syscall_json = request.get_json()
-    #print("syscallsData: ", syscall_json)
 
     syscall_list = []
     for key, value in syscall_json.items():
@@ -212,13 +378,17 @@ def handle_post_request():
 
     #sequence = [CLS] + syscall_list + [SEP]
     sequence = syscall_list
-    #print("sequence: ", sequence, "\n")
-    next_syscalls = fill_mask(sequence, sampling_method=SamplingMethod.SAMPLE_TOP_P, temperature=0.7)
+    next_syscalls = await fill_mask(sequence, sampling_method=sample_method_selector.current_sampling, temperature=0.7)
+    # idx = pick(len(syscall_list))
+    # response = {'State': 0, 'Syscall': next_syscalls[idx]}
 
-    print("next_syscalls: ", next_syscalls, "\n")
-    #idx = pick(len(syscall_list))
-    #response = {'State': 0, 'Syscall': next_syscalls[idx]}
-    response = {'State': 0, 'Syscall': next_syscalls}
+    response = {'State': 1, 'Syscall': ''}
+
+    if len(next_syscalls) > 0:
+        print(f"samping: {sample_method_selector.current_sampling.value}\nnext_syscalls: {next_syscalls[0]}\n")
+        response['State'] = 0
+        response['Syscall'] = next_syscalls[0]
+
     return jsonify(response)
 
 

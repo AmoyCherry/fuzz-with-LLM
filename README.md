@@ -18,7 +18,8 @@
 > VM Kernel Version: linux-5.15
 
 1 VM (2 vCPUs and 4G RAM) for 24 hours.
-![test](./documents/assets/expt-05-02.png)
+<!--![test](./documents/assets/expt-05-02.png)-->
+![test](./documents/assets/eval-0725-time.png)
 
 ### Coverage over executed programs without corpus
 > System: Ubuntu-22.0
@@ -29,4 +30,6 @@
 > VM Kernel Version: linux-5.15
 
 1 VM (2 vCPUs and 4G RAM) for 24 hours.
-![test](./documents/assets/expt-0502-2.png)
+<!--![test](./documents/assets/expt-0502-2.png)
+-->
+![test](./documents/assets/eval-0725-number.png)
