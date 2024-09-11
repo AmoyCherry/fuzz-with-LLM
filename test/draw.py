@@ -17,19 +17,21 @@ syzllm = ['syzllm-0319-1.txt',
           'expt-syzllm-0322-2.txt',
           'expt-syzllm-0323-1.txt',
           'expt-syzllm-0324-1.txt',
-          'expt-syzllm-0502-1.txt']
+          'expt-syzllm-0502-1.txt',
+          'expt.txt',
+          'expt-res.txt']
 
 
 SyzLLM_label = 'SyzLLM'
-SyzLLM_broken_label = 'SyzLLM-broken'
-SyzLLM_pure_label = 'SyzLLM-newest'
+SyzLLM_broken_label = 'SyzLLM-ResInline'
+SyzLLM_pure_label = 'SyzLLM-ResInline-Sampling'
 syzkaller_label = 'Syzkaller'
 
 color_map = {
     SyzLLM_label : 'r--',
     syzkaller_label : 'g--',
     SyzLLM_broken_label : 'b--',
-    SyzLLM_pure_label : 'c--'
+    SyzLLM_pure_label : 'k-'
 }
 
 
@@ -115,6 +117,9 @@ def draw_lines_execute(lines):
     plt.legend()
     plt.show()
 
+# top-k -> all k
+# make res inline stable
+# darpa
 
 if __name__ == '__main__':
     lines = [
@@ -127,11 +132,11 @@ if __name__ == '__main__':
         #Line(table_path[2], choiceTable_label),
         Line(syzkaller[1], syzkaller_label),
         Line(syzllm[7], SyzLLM_label),
-        Line(syzllm[8], SyzLLM_pure_label)
-        #Line(syzllm[6], SyzLLM_pure_label),
+        Line(syzllm[9], SyzLLM_pure_label),
+        Line(syzllm[10], SyzLLM_broken_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
     ]
 
     draw_lines_execute(lines)
-    #draw_lines_time(lines)
+    draw_lines_time(lines)
