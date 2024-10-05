@@ -2,6 +2,7 @@ import datetime
 import difflib
 import queue
 import random
+import re
 import threading
 import time
 
@@ -16,6 +17,7 @@ from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizer
 
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
+syscall_dict = {}
 syscall_name_dict = {}
 
 
@@ -39,23 +41,36 @@ def log_worker(log_queue):
             f.write(f"{record.tokenize_num} {record.call_num}\n")
 
 
+description_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\$')
+brackets_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\(')
 def extract_syscall_name(syscall):
-    if '(' in syscall:
-        return syscall[:syscall.index('(')]
+    match = description_pattern.search(syscall)
+    if match:
+        return match.group(1)[:syscall.index('$')]
+
+    match = brackets_pattern.search(syscall)
+    if match:
+        return match.group(1)[:syscall.index('(')]
 
     return syscall
 
 
 def init_env():
+    names_path = "./names.txt"
+    with open(names_path, 'r') as file:
+        for line in file:
+            key, value = line.strip().split(' ', 1)
+            syscall_name_dict[key] = value
+
     with open(SyzTokenizerVocabFilePath, 'r') as file:
         for line in file:
             syscall = line.strip()
             syscall_name = extract_syscall_name(syscall)
-            syscall_name_dict.setdefault(syscall_name, list()).append(syscall)
+            syscall_dict.setdefault(syscall_name, list()).append(syscall)
 
     # thread = threading.Thread(target=log_worker, args=(log_queue,))
     # thread.start()
-    print("Log thread start...")
+    # print("Log thread start...")
 
 
 def find_most_similar(reference_string, strings_set):
@@ -78,12 +93,13 @@ def validate_syscall(syscall_list):
     new_syscall_list = []
     tokenize_num = 0
     for syscall in syscall_list:
+        syscall = replace_description_with_syzllm(syscall)
         syscall_name = extract_syscall_name(syscall)
         if tokenizer.tokenize_word(syscall) != UNK_idx:
             tokenize_num += 1
             new_syscall_list.append(syscall)
-        elif syscall_name in syscall_name_dict:
-            syscall_set = syscall_name_dict[syscall_name]
+        elif syscall_name in syscall_dict:
+            syscall_set = syscall_dict[syscall_name]
             similar_call = find_most_similar(syscall, syscall_set)
             if similar_call is not None:
                 new_syscall_list.append(similar_call)
@@ -96,6 +112,27 @@ def validate_syscall(syscall_list):
     #log_queue.put(LogRecord(tokenize_num, len(syscall_list)))
     return new_syscall_list
 
+resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
+def extract_call_name_in_resource(input):
+    return re.findall(resource_pattern, input)
+
+name_description_pattern = r'\$(.*?)\('
+syzllm_pattern = r'$SyzLLM('
+def replace_description_with_syzllm(syscall):
+    return re.sub(name_description_pattern, syzllm_pattern, syscall)
+
+
+name_and_description_pattern = r'\b(.*?)\('
+def remove_syzllm_from_description(syscall):
+    call_replacement = syscall_name_dict[extract_syscall_name(syscall)] + '('
+    replaced_call = re.sub(name_and_description_pattern, call_replacement, syscall, count=1)
+
+    resources = extract_call_name_in_resource(replaced_call)
+    for resource in resources:
+        resource_replacement = syscall_name_dict[resource]
+        replaced_call = re.sub(resource + r'\$SyzLLM', resource_replacement, replaced_call, count=1)
+
+    return replaced_call
 
 def highest_power_of_2(N):
     # if N is a power of two simply return it
@@ -116,58 +153,70 @@ class SamplingMethod(Enum):
 
 async def fill_mask(sequence,
                     sampling_method=SamplingMethod.TOP_K,
-                    temperature=1.0, top_k=25,
+                    temperature=0.9, top_k_arg=25,
                     top_p=0.9,
                     beam_width=5, diversity_penalty=1.0):
     input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 182605)[1]
+    mask_token_index = torch.where(input_ids == 143065)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
-    top_tokens = sample(mask_token_logits, sampling_method, temperature, top_k, top_p, beam_width, diversity_penalty)
-
-    syscalls = []
-    for token in top_tokens:
-        call = tokenizer.decode([token])
-        if "image" in call:
-            continue
-        syscalls.append(call)
-
-    return syscalls
+    return sample(mask_token_logits, sampling_method, temperature, top_k_arg, top_p, 10, beam_width, diversity_penalty)
 
 
-def sample(logits, sampling_method, temperature=1.0, k=15, top_p=0.9, beam_width=5, diversity_penalty=1.0):
+def sample(logits, sampling_method, temperature=1.0, k=15, top_p=0.9, n=10, beam_width=5, diversity_penalty=1.0):
     if sampling_method == SamplingMethod.TEMPERATURE:
-        return sample_with_temperature(logits, temperature)
+        return indices_to_tokens(sample_with_temperature(logits, n, temperature))
     elif sampling_method == SamplingMethod.SAMPLE_TOP_K:
-        return sample_with_top_k(logits, k)
+        return indices_to_tokens(sample_with_top_k(logits, n, k))
     elif sampling_method == SamplingMethod.SAMPLE_TOP_P:
-        return sample_with_top_p(logits, top_p)
+        return indices_to_tokens(sample_with_top_p(logits, n, top_p))
     #elif sampling_method == SamplingMethod.BEAM_SEARCH:
     #    return beam_search_one_step_with_diversity(logits, beam_width, diversity_penalty)
     elif sampling_method == SamplingMethod.TOP_K:
-        return top_k(logits)
+        return top_k(logits, n)
     else:
         raise ValueError("Invalid sampling method specified.")
 
 
-def sample_with_temperature(logits, temperature=1.0):
+def indices_to_tokens(indices):
+    syscalls = []
+    for indices in indices:
+        for index in indices:
+            call = tokenizer.decode([index])
+            call = remove_syzllm_from_description(call)
+            if "image" in call:
+                continue
+            syscalls.append(call)
+    return syscalls
+
+
+def sample_with_temperature(logits, n, temperature=1.0):
     scaled_logits = logits / temperature
     probabilities = F.softmax(scaled_logits, dim=-1)
-    return torch.multinomial(probabilities, num_samples=1).squeeze(1)
+    return torch.multinomial(probabilities, num_samples=n, replacement=True).squeeze(1)
 
 
-def top_k(logits, k=6):
-    return [torch.topk(logits, k, dim=1).indices[0].tolist()[pick(k)]]
+# todo: n samples
+def top_k(logits, n):
+    indices = torch.topk(logits, n, dim=1).indices[0].tolist()
+    syscalls = []
+    for index in indices:
+        call = tokenizer.decode([index])
+        call = remove_syzllm_from_description(call)
+        if "image" in call:
+            continue
+        syscalls.append(call)
+    return syscalls
 
 
-def sample_with_top_k(logits, k=50):
+def sample_with_top_k(logits, n, k=50):
     values, indices = torch.topk(logits, k=k)
     probs = F.softmax(values, dim=-1)
-    next_token = torch.multinomial(probs, num_samples=1)
-    return indices.gather(-1, next_token).squeeze(1)
+    sampled_indices = torch.multinomial(probs, num_samples=n, replacement=True).squeeze(1)
+    return indices.gather(-1, sampled_indices).squeeze(1)
 
 
-def sample_with_top_p(logits, top_p=0.9):
+def sample_with_top_p(logits, n, top_p=0.9):
     # Sort logits in descending order
     sorted_logits, sorted_indices = torch.sort(logits, descending=True)
     cumulative_probs = torch.cumsum(F.softmax(sorted_logits, dim=-1), dim=-1)
@@ -187,7 +236,7 @@ def sample_with_top_p(logits, top_p=0.9):
 
     # Compute probabilities from logits and sample
     probs = F.softmax(logits, dim=-1)
-    return torch.multinomial(probs, num_samples=1).squeeze(1)
+    return torch.multinomial(probs, num_samples=n, replacement=True).squeeze(1)
 
 # NOTE! beam search seems not good enough
 def beam_search_one_step_with_diversity(logits, k=10, diversity_penalty=1.0):
@@ -382,12 +431,12 @@ async def handle_post_request():
     # idx = pick(len(syscall_list))
     # response = {'State': 0, 'Syscall': next_syscalls[idx]}
 
-    response = {'State': 1, 'Syscall': ''}
+    response = {'State': 1, 'Syscalls': []}
 
     if len(next_syscalls) > 0:
         print(f"samping: {sample_method_selector.current_sampling.value}\nnext_syscalls: {next_syscalls[0]}\n")
         response['State'] = 0
-        response['Syscall'] = next_syscalls[0]
+        response['Syscalls'] = next_syscalls
 
     return jsonify(response)
 
