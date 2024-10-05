@@ -74,19 +74,9 @@ def init_env():
 
 
 def find_most_similar(reference_string, strings_set):
-    # Converts the set to a list since get_close_matches expects a list.
-    strings_list = list(strings_set)
+    similar_list = difflib.get_close_matches(reference_string, list(strings_set), n=1, cutoff=0.6)
 
-    # Use get_close_matches to find the most similar string.
-    # n=1 to get the top match
-    # cutoff=0 to consider all possibilities, you can adjust this to be higher for closer matches
-    similar_list = difflib.get_close_matches(reference_string, strings_list, n=1, cutoff=0)
-
-    # If there's at least one match, return the first (and in this setup, the only) element.
-    if similar_list:
-        return similar_list[0]
-    else:
-        return None
+    return similar_list[0] if similar_list else None
 
 
 def validate_syscall(syscall_list):
