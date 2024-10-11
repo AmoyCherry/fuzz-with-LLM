@@ -7,6 +7,7 @@ import threading
 import time
 
 from flask import Flask, request, jsonify
+from rapidfuzz import process, fuzz
 from transformers import AutoModelForMaskedLM
 import torch
 import torch.nn.functional as F
@@ -41,10 +42,9 @@ def log_worker(log_queue):
             f.write(f"{record.tokenize_num} {record.call_num}\n")
 
 
-description_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\$')
-brackets_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\(')
-
 def extract_syscall_name(syscall):
+    description_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\$')
+    brackets_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\(')
     match = description_pattern.search(syscall)
     if match:
         return match.group(1)[:syscall.index('$')]
@@ -71,16 +71,15 @@ def init_env():
 
     # thread = threading.Thread(target=log_worker, args=(log_queue,))
     # thread.start()
-    print("Log thread start...")
+    # print("Log thread start...")
 
 
 def find_most_similar(reference_string, strings_set):
-    similar_list = difflib.get_close_matches(reference_string, list(strings_set), n=1, cutoff=0.9)
+    result = process.extractOne(reference_string, strings_set, scorer=fuzz.WRatio)
+    return result[0] if result else None
 
-    return similar_list[0] if similar_list else None
 
-
-def validate_syscall(syscall_list):
+async def validate_syscall(syscall_list):
     new_syscall_list = []
     tokenize_num = 0
     for syscall in syscall_list:
@@ -104,18 +103,19 @@ def validate_syscall(syscall_list):
     return new_syscall_list
 
 
-resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
 def extract_call_name_in_resource(input):
+    resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
     return re.findall(resource_pattern, input)
 
-name_description_pattern = r'\$(.*?)\('
-syzllm_pattern = r'$SyzLLM('
 def replace_description_with_syzllm(syscall):
+    name_description_pattern = r'\$(.*?)\('
+    syzllm_pattern = r'$SyzLLM('
     return re.sub(name_description_pattern, syzllm_pattern, syscall)
 
 
-name_and_description_pattern = r'\b(.*?)\('
-def remove_syzllm_from_description(syscall):
+async def remove_syzllm_from_description(syscall):
+    name_and_description_pattern = r'\b(.*?)\('
+
     call_replacement = syscall_name_dict[extract_syscall_name(syscall)] + '('
     replaced_call = re.sub(name_and_description_pattern, call_replacement, syscall, count=1)
 
@@ -150,14 +150,15 @@ async def fill_mask(sequence,
                     beam_width=5, diversity_penalty=1.0):
     input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 143065)[1]
-    mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
+    mask_token_index = torch.where(input_ids == 208925)[1]
+    model = mask_model
+    mask_token_logits = model(input_ids).logits[0, mask_token_index, :]
     top_tokens = sample(mask_token_logits, sampling_method, temperature, top_k, top_p, beam_width, diversity_penalty)
 
     syscalls = []
     for token in top_tokens:
         call = tokenizer.decode([token])
-        call = remove_syzllm_from_description(call)
+        call = await remove_syzllm_from_description(call)
         if "image" in call:
             continue
         syscalls.append(call)
@@ -190,7 +191,7 @@ def top_k(logits, k=6):
     return [torch.topk(logits, k, dim=1).indices[0].tolist()[pick(k)]]
 
 
-def sample_with_top_k(logits, k=50):
+def sample_with_top_k(logits, k=25):
     values, indices = torch.topk(logits, k=k)
     probs = F.softmax(values, dim=-1)
     next_token = torch.multinomial(probs, num_samples=1)
@@ -404,7 +405,7 @@ async def handle_post_request():
     for key, value in syscall_json.items():
         if key == "Syscalls":
             syscall_list = value
-    syscall_list = validate_syscall(syscall_list)
+    syscall_list = await validate_syscall(syscall_list)
 
     #sequence = [CLS] + syscall_list + [SEP]
     sequence = syscall_list
