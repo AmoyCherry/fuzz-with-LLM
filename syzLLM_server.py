@@ -7,6 +7,7 @@ import threading
 import time
 
 from flask import Flask, request, jsonify
+from rapidfuzz import process, fuzz
 from transformers import AutoModelForMaskedLM
 import torch
 import torch.nn.functional as F
@@ -14,6 +15,10 @@ from enum import Enum
 
 from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath, ServerLogPath
+
+# Remote debug only
+# import pydevd_pycharm
+# pydevd_pycharm.settrace('192.168.0.103', port=22335, stdoutToServer=True, stderrToServer=True)
 
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
@@ -41,13 +46,14 @@ def log_worker(log_queue):
             f.write(f"{record.tokenize_num} {record.call_num}\n")
 
 
-description_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\$')
-brackets_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\(')
+
 def extract_syscall_name(syscall):
+    description_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\$')
     match = description_pattern.search(syscall)
     if match:
         return match.group(1)[:syscall.index('$')]
 
+    brackets_pattern = re.compile(r'\b([a-zA-Z0-9_]+)\(')
     match = brackets_pattern.search(syscall)
     if match:
         return match.group(1)[:syscall.index('(')]
@@ -66,6 +72,8 @@ def init_env():
         for line in file:
             syscall = line.strip()
             syscall_name = extract_syscall_name(syscall)
+            if syscall_name in syscall_dict and len(syscall_dict[syscall_name]) > 6e3:
+                continue
             syscall_dict.setdefault(syscall_name, list()).append(syscall)
 
     # thread = threading.Thread(target=log_worker, args=(log_queue,))
@@ -74,9 +82,9 @@ def init_env():
 
 
 def find_most_similar(reference_string, strings_set):
-    similar_list = difflib.get_close_matches(reference_string, list(strings_set), n=1, cutoff=0.6)
-
-    return similar_list[0] if similar_list else None
+    time.sleep(random.uniform(1, 5) / 1000)
+    result = process.extractOne(reference_string, strings_set, scorer=fuzz.WRatio)
+    return result[0] if result else None
 
 
 def validate_syscall(syscall_list):
@@ -102,18 +110,19 @@ def validate_syscall(syscall_list):
     #log_queue.put(LogRecord(tokenize_num, len(syscall_list)))
     return new_syscall_list
 
-resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
 def extract_call_name_in_resource(input):
+    resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
     return re.findall(resource_pattern, input)
 
-name_description_pattern = r'\$(.*?)\('
-syzllm_pattern = r'$SyzLLM('
+
 def replace_description_with_syzllm(syscall):
+    name_description_pattern = r'\$(.*?)\('
+    syzllm_pattern = r'$SyzLLM('
     return re.sub(name_description_pattern, syzllm_pattern, syscall)
 
 
-name_and_description_pattern = r'\b(.*?)\('
 def remove_syzllm_from_description(syscall):
+    name_and_description_pattern = r'\b(.*?)\('
     call_replacement = syscall_name_dict[extract_syscall_name(syscall)] + '('
     replaced_call = re.sub(name_and_description_pattern, call_replacement, syscall, count=1)
 
@@ -148,7 +157,7 @@ async def fill_mask(sequence,
                     beam_width=5, diversity_penalty=1.0):
     input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 143065)[1]
+    mask_token_index = torch.where(input_ids == 208925)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
     return sample(mask_token_logits, sampling_method, temperature, top_k_arg, top_p, 10, beam_width, diversity_penalty)
 
@@ -170,8 +179,8 @@ def sample(logits, sampling_method, temperature=1.0, k=15, top_p=0.9, n=10, beam
 
 def indices_to_tokens(indices):
     syscalls = []
-    for indices in indices:
-        for index in indices:
+    for index_group in indices:
+        for index in index_group:
             call = tokenizer.decode([index])
             call = remove_syzllm_from_description(call)
             if "image" in call:
