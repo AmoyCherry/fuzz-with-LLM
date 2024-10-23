@@ -16,6 +16,11 @@ from enum import Enum
 from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, VocabFilePath, CLS, SEP, UNK_idx, UNK, SyzTokenizerVocabFilePath, ServerLogPath
 
+# Debug only
+# import pydevd_pycharm
+# pydevd_pycharm.settrace('192.168.0.103', port=22335, stdoutToServer=True, stderrToServer=True)
+
+
 tokenizer = SyzTokenizer()
 mask_model = AutoModelForMaskedLM.from_pretrained(ModelPath)
 syscall_dict = {}
@@ -67,6 +72,10 @@ def init_env():
         for line in file:
             syscall = line.strip()
             syscall_name = extract_syscall_name(syscall)
+            if syscall_name in syscall_dict and "sendmsg" in syscall_name and len(syscall_dict[syscall_name]) > 10:
+                continue
+            if syscall_name in syscall_dict and len(syscall_dict[syscall_name]) > 2e3:
+                continue
             syscall_dict.setdefault(syscall_name, list()).append(syscall)
 
     # thread = threading.Thread(target=log_worker, args=(log_queue,))
@@ -79,7 +88,7 @@ def find_most_similar(reference_string, strings_set):
     return result[0] if result else None
 
 
-async def validate_syscall(syscall_list):
+def validate_syscall(syscall_list):
     new_syscall_list = []
     tokenize_num = 0
     for syscall in syscall_list:
@@ -107,13 +116,14 @@ def extract_call_name_in_resource(input):
     resource_pattern = r'@RSTART@((?:(?!@RSTART@).)*?)\$SyzLLM'
     return re.findall(resource_pattern, input)
 
+
 def replace_description_with_syzllm(syscall):
     name_description_pattern = r'\$(.*?)\('
-    syzllm_pattern = r'\$SyzLLM('
+    syzllm_pattern = '$SyzLLM('
     return re.sub(name_description_pattern, syzllm_pattern, syscall)
 
 
-async def remove_syzllm_from_description(syscall):
+def remove_syzllm_from_description(syscall):
     name_and_description_pattern = r'\b(.*?)\('
 
     call_replacement = syscall_name_dict[extract_syscall_name(syscall)] + '('
@@ -158,7 +168,7 @@ async def fill_mask(sequence,
     syscalls = []
     for token in top_tokens:
         call = tokenizer.decode([token])
-        call = await remove_syzllm_from_description(call)
+        call = remove_syzllm_from_description(call)
         if "image" in call:
             continue
         syscalls.append(call)
@@ -386,7 +396,7 @@ request_counter = RequestCounter()
 
 
 @app.route('/cover', methods=['POST'])
-def handle_cover():
+async def handle_cover():
     try:
         cover = int(request.data.decode("utf-8"))
         sample_method_selector.update_cover(cover)
@@ -405,7 +415,7 @@ async def handle_post_request():
     for key, value in syscall_json.items():
         if key == "Syscalls":
             syscall_list = value
-    syscall_list = await validate_syscall(syscall_list)
+    syscall_list = validate_syscall(syscall_list)
 
     #sequence = [CLS] + syscall_list + [SEP]
     sequence = syscall_list
