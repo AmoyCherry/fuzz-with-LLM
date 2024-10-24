@@ -125,7 +125,7 @@ def extract_call_name_in_resource(input):
 
 def replace_description_with_syzllm(syscall):
     name_description_pattern = r'\$(.*?)\('
-    syzllm_pattern = r'\$SyzLLM('
+    syzllm_pattern = '$SyzLLM('
     return re.sub(name_description_pattern, syzllm_pattern, syscall)
 
 
