@@ -82,9 +82,17 @@ def init_env():
 
 
 def find_most_similar(reference_string, strings_set):
-    time.sleep(random.uniform(1, 5) / 1000)
-    result = process.extractOne(reference_string, strings_set, scorer=fuzz.WRatio)
-    return result[0] if result else None
+    strings_list = list(strings_set)
+    # Use get_close_matches to find the most similar string.
+    # n=1 to get the top match
+    # cutoff=0 to consider all possibilities, you can adjust this to be higher for closer matches
+    similar_list = difflib.get_close_matches(reference_string, strings_list, n=1, cutoff=0.8)
+
+    # If there's at least one match, return the first (and in this setup, the only) element.
+    if similar_list:
+        return similar_list[0]
+    else:
+        return None
 
 
 def validate_syscall(syscall_list):
