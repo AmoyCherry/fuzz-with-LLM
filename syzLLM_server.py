@@ -74,7 +74,7 @@ def init_env():
             syscall_name = extract_syscall_name(syscall)
             if syscall_name in syscall_dict and "sendmsg" in syscall_name and len(syscall_dict[syscall_name]) > 10:
                 continue
-            if syscall_name in syscall_dict and len(syscall_dict[syscall_name]) > 2e3:
+            if syscall_name in syscall_dict and len(syscall_dict[syscall_name]) > 1e3:
                 continue
             syscall_dict.setdefault(syscall_name, list()).append(syscall)
 
