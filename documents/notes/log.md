@@ -7,7 +7,7 @@
 Syzkaller crashed after running 600k programs. Reported `no output from test machine`.
 
 - cause: may caused by syscall dict having a large size;
-- solution: minimize syscall dict;
+- solution: minimize syscall dict size smaller than 1e3;
 
 ## 25-Otc-2024
 
