@@ -28,20 +28,22 @@ syzllm = ['syzllm-0319-1.txt',
           './temp/expt-res-sampling.txt',
           './temp/expt-res.txt',
           'expt-res.txt',
-          'expt-res-sampling-0817.txt'
+          'expt-res-sampling-0817.txt',
+          'expt-syzllm-1028.txt',
+          'expt-syzllm-batch.txt'
           ]
 
 
 SyzLLM_label = 'SyzLLM'
-SyzLLM_broken_label = 'ResInline'
-SyzLLM_pure_label = 'ResInline-SamplingSelector'
+SyzLLM_Batch_ResInline_label = 'SyzLLM-ResInline-Batch'
+SyzLLM_ResInline_label = 'SyzLLM-ResInline'
 syzkaller_label = 'Syzkaller'
 
 color_map = {
     SyzLLM_label: 'r--',
     syzkaller_label: 'g--',
-    SyzLLM_broken_label: 'b--',
-    SyzLLM_pure_label: 'k-'
+    SyzLLM_Batch_ResInline_label: 'b--',
+    SyzLLM_ResInline_label: 'k-'
 }
 
 
@@ -141,8 +143,8 @@ if __name__ == '__main__':
         Line(syzllm[7], SyzLLM_label),
         #Line(syzllm[8], SyzLLM_pure_label),
         #Line(syzllm[13], SyzLLM_broken_label),
-        Line(syzllm[18], SyzLLM_broken_label),
-        Line(syzllm[19], SyzLLM_pure_label)
+        Line(syzllm[20], SyzLLM_ResInline_label),
+        Line(syzllm[21], SyzLLM_Batch_ResInline_label)
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
