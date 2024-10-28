@@ -36,7 +36,9 @@ Syzkaller crashed after running 600k programs. Reported `no output from test mac
 #### [Unresolved🛑] Design
 
 - answer quality
+  - The best evaluation of syzllm is the one without resource inline but assigning the same args to all the same syscalls so that get a minimum token size so far.
   - The token size should be as small as possible than the total calls, this has a huge impact on the quality and diversity of the answers by influencing the average learning material per syscall.
+  
 
 ### [Unfinished🚀] Ongoing
 
