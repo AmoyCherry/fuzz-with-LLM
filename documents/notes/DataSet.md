@@ -66,6 +66,42 @@ This dataset contains 66 million lines of traces in total (both entry and exit a
 [04:45:26.499096222] (+0.000004896) server syscall_exit_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { ret = 7 }
 ```
 
+### Conversion
+
+#### Phase 1 - merge syscall_entry\_* (parameters) and syscall_exit_\* (return value) into one trace
+
+Rules: 
+
+1. Extract syscall name and its parameters and its return value into one line;
+
+2. We will encounter entry trace first to get the syscall name and its parameters;
+
+3. We should find its corresponding return value (syscall_exit_) in the next 1S traces;
+
+4. Target converted data should look like as follow.
+
+   ```
+   openat { dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 } = { ret = 57 }
+   read { fd = 23, count = 1 } = { ret = 1, buf = 140723345741599 }
+   close { fd = 12 } = { ret = 0 }
+   sendmsg { fd = 55, msg = 139820868476640, flags = 16384 } = { ret = 220 }
+   ```
+
+#### Phase 2 - convert to syzkaller format
+
+Rules:
+
+1. Target data:
+
+   ```
+   openat$SyzLLM(-100, ${AssignedPointer}, 524288, 0)
+   read$SyzLLM(${Resource}, ${AssignedPointer}, 1)
+   close$SyzLLM(${Resource})
+   sendmsg$SyzLLM(${Resource}, ${AssignedStruct}, 16384)
+   ```
+
+2. We want each line of the call can be run properly so we have to guarantee its dependencies can be met.
+
 ## TwinDroid
 
 > [Dataset](https://github.com/AsmaLif/TwinDroid-dataset)
