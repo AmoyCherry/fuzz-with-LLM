@@ -60,10 +60,12 @@ This dataset contains 66 million lines of traces in total (both entry and exit a
 # parsed dataset snippet
 
 # syscall_entry marks when to call write with parameters
-[04:45:26.499091326] (+0.000004479) server syscall_entry_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { fd = 1, buf = 94201509176096, count = 7 }
+[04:45:26.499091326] (+0.000004479) server syscall_entry_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { fd = 1, buf = 942015091 76096, count = 7 }
 
 # syscall_exit marks when to finish calling write with return value
 [04:45:26.499096222] (+0.000004896) server syscall_exit_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { ret = 7 }
+
+write @Param@{ fd = 1, buf = 94201509176096, count = 7 }@Param@ @Ret@{ ret = 7 }@Ret@
 ```
 
 ### Conversion
@@ -72,7 +74,7 @@ This dataset contains 66 million lines of traces in total (both entry and exit a
 
 Rules: 
 
-1. Extract syscall name and its parameters and its return value into one line;
+1. Extract syscall name and its parameters and its return value line by line;
 
 2. We will encounter entry trace first to get the syscall name and its parameters;
 
@@ -81,13 +83,37 @@ Rules:
 4. Target converted data should look like as follow.
 
    ```
-   openat { dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 } = { ret = 57 }
-   read { fd = 23, count = 1 } = { ret = 1, buf = 140723345741599 }
-   close { fd = 12 } = { ret = 0 }
-   sendmsg { fd = 55, msg = 139820868476640, flags = 16384 } = { ret = 220 }
+   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@
+   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@
+   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@
+   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@
    ```
 
-#### Phase 2 - convert to syzkaller format
+> Result: [Google Drive](https://drive.google.com/file/d/1-3y6vE5qYoh2vJecphJzUpvj5PMSe_g1/view?usp=sharing)
+
+> Issue
+>
+> The trace contains some long consecutive same calls.
+>
+> ```
+> Consecutive calls greater than 100:
+> madvise: 314 times
+> newstat: 173 times
+> futex: 2638 times
+> read: 11 times
+> poll: 4 times
+> mprotect: 17 times
+> rt: 1 times
+> 
+> Consecutive calls greater than 500:
+> madvise: 46 times
+> futex: 1116 times
+> newstat: 4 times
+> poll: 2 times
+> mprotect: 4 times
+> ```
+
+#### Phase 2 - syzkaller format
 
 Rules:
 
