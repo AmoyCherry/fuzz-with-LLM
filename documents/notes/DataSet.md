@@ -65,28 +65,37 @@ This dataset contains 66 million lines of traces in total (both entry and exit a
 # syscall_exit marks when to finish calling write with return value
 [04:45:26.499096222] (+0.000004896) server syscall_exit_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { ret = 7 }
 
-write @Param@{ fd = 1, buf = 94201509176096, count = 7 }@Param@ @Ret@{ ret = 7 }@Ret@
+write @Param@{ fd = 1, buf = 94201509176096, count = 7 }@Param@ @Ret@{ ret = 7 }@Ret@ @Time@04:45:26.499091326@Time@
 ```
 
 ### Conversion
 
 #### Phase 1 - merge syscall_entry\_* (parameters) and syscall_exit_\* (return value) into one trace
 
+Goals:
+
+Normalize syscall and args and return value and start time.
+
 Rules: 
 
-1. Extract syscall name and its parameters and its return value line by line;
+1. Extract 
 
-2. We will encounter entry trace first to get the syscall name and its parameters;
+   1. syscall name 
+   2. and its parameters 
+   3. and its return value 
+   4. and entry time line by line;
+
+2. We will encounter entry trace first to get the syscall name and its parameters and entry time;
 
 3. We should find its corresponding return value (syscall_exit_) in the next 1S traces;
 
 4. Target converted data should look like as follow.
 
    ```
-   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@
-   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@
-   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@
-   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@
+   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@ @Time@04:48:53.574837309@time@
+   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@ @Time@04:48:53.579737309@Time@
+   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@ @Time@04:48:53.974837309@Time@
+   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@ @Time@04:49:00.574837309@Time@
    ```
 
 > Result: [Google Drive](https://drive.google.com/file/d/1-3y6vE5qYoh2vJecphJzUpvj5PMSe_g1/view?usp=sharing)
@@ -115,18 +124,56 @@ Rules:
 
 #### Phase 2 - syzkaller format
 
+Goals:
+
+Split traces into programs by time.
+
 Rules:
 
 1. Target data:
 
    ```
-   openat$SyzLLM(-100, ${AssignedPointer}, 524288, 0)
-   read$SyzLLM(${Resource}, ${AssignedPointer}, 1)
-   close$SyzLLM(${Resource})
-   sendmsg$SyzLLM(${Resource}, ${AssignedStruct}, 16384)
+   [SEP]
+   openat$SyzLLM(-100, "/usr/lib/firefox/libXt.so.6", 524288, 0) ret = 23
+   read$SyzLLM(23, 1)
+   close$SyzLLM(12)
+   sendmsg$SyzLLM(55, 139820868476640, 16384)
+   [SEP]
    ```
 
-2. We want each line of the call can be run properly so we have to guarantee its dependencies can be met.
+2. Within every second there are average `3.3e7/180s=183,333` calls. I think the program size is a key factor to the model's performance. And I'd choose 100 as the size so we need to split programs every `1s/(183,333/100)=0.0005s=0.5ms`.
+
+   - We should focus on the later stage of fuzzing where run larger programs than the initial stage like 10 to 20 calls per program.
+   - TODO: check the actual program size when syzkaller running 1e6 programs.
+
+3. We should search for resources by fd and return value and use resources to replace consumers's fd.
+
+> Result: Google Drive (370k programs with avg size of 100 calls)
+
+#### Phase 3 - training format
+
+Goals:
+
+Normalize args for training.
+
+Rules:
+
+1. There are only three formats of args in the training data - resource, addr, constant. 
+
+   - The constants are meaningful (e.g. flag, mode) and we should retain and convert them to hex. 
+   - Addresses are related to strings (e.g. path) and data structures (e.g. msg) and we can assign to them.
+   - Assign resources if not any match.
+
+2. Target data:
+
+   ```
+   [SEP]
+   openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)='./file0\x00', 0x80000, 0x0)
+   read$SyzLLM(@RSTART@openat$SyzLLM(0x0, &(0x7f0000008000)='/proc/keys\x00', 0x1, 0x0)@REND@, &(0x7f0000017000)=""/64, 0x1)
+   close$SyzLLM(@RSTART@openat$SyzLLM(0x0, &(0x7f0000008000)='/proc/keys\x00', 0x1, 0x0)@REND@)
+   sendmsg$SyzLLM(@RSTART@socket$SyzLLM(0x1, 0x1, 0x1)@REND@, (0x7f000000f000)={&(0x7f000000f400)=nil, 0x1, &(0x7f000000f800)={&(0x7f000000fc00)=@newlink={0x1, 0x1, 0x401, 0x1, 0x1, {0x1, 0x1, 0x1}, [@IFLA_MASTER={0x8, 0x3}, @IFLA_LINKINFO={0x20, 0x12, 0x0, 0x1, @bond={{0x9}, {0x10, 0x2, 0x0, 0x1, [@IFLA_BOND_ARP_IP_TARGET={0x4}, @IFLA_BOND_ARP_INTERVAL={0x8, 0x7, 0x6}]}}}]}, 0x1}, 0x1, 0x1, 0x1, 0x0}, 0x4000)
+   [SEP]
+   ```
 
 ## TwinDroid
 
