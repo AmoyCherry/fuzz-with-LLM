@@ -65,7 +65,7 @@ This dataset contains 66 million lines of traces in total (both entry and exit a
 # syscall_exit marks when to finish calling write with return value
 [04:45:26.499096222] (+0.000004896) server syscall_exit_write: { cpu_id = 0 }, { procname = "bmon", pid = 1771, tid = 1771 }, { ret = 7 }
 
-write @Param@{ fd = 1, buf = 94201509176096, count = 7 }@Param@ @Ret@{ ret = 7 }@Ret@ @Time@04:45:26.499091326@Time@
+write @Param@{ fd = 1, buf = 94201509176096, count = 7 }@Param@ @Ret@{ ret = 7 }@Ret@ @Time@04:45:26.499091326@Time@ @Proc@bmon@Proc@
 ```
 
 ### Conversion
@@ -83,7 +83,8 @@ Rules:
    1. syscall name 
    2. and its parameters 
    3. and its return value 
-   4. and entry time line by line;
+   4. and entry time 
+   5. and process name for resource locating;
 
 2. We will encounter entry trace first to get the syscall name and its parameters and entry time;
 
@@ -92,41 +93,44 @@ Rules:
 4. Target converted data should look like as follow.
 
    ```
-   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@ @Time@04:48:53.574837309@time@
-   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@ @Time@04:48:53.579737309@Time@
-   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@ @Time@04:48:53.974837309@Time@
-   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@ @Time@04:49:00.574837309@Time@
+   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@ @Time@04:48:53.574837309@time@ @Proc@firefox@Proc@
+   
+   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@ @Time@04:48:53.579737309@Time@ @Proc@firefox@Proc@
+   
+   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@ @Time@04:48:53.974837309@Time@ @Proc@firefox@Proc@
+   
+   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@ @Time@04:49:00.574837309@Time@ @Proc@firefox@Proc@
    ```
 
 > Result: [Google Drive](https://drive.google.com/file/d/1-3y6vE5qYoh2vJecphJzUpvj5PMSe_g1/view?usp=sharing)
 
-> Issue
->
-> The trace contains some long consecutive same calls.
->
-> ```
-> Consecutive calls greater than 100:
-> madvise: 314 times
-> newstat: 173 times
-> futex: 2638 times
-> read: 11 times
-> poll: 4 times
-> mprotect: 17 times
-> rt: 1 times
-> 
-> Consecutive calls greater than 500:
-> madvise: 46 times
-> futex: 1116 times
-> newstat: 4 times
-> poll: 2 times
-> mprotect: 4 times
-> ```
+**Issue**
+
+The trace contains some long consecutive same calls.
+
+```
+Consecutive calls greater than 100:
+madvise: 314 times
+newstat: 173 times
+futex: 2638 times
+read: 11 times
+poll: 4 times
+mprotect: 17 times
+rt: 1 times
+
+Consecutive calls greater than 500:
+madvise: 46 times
+futex: 1116 times
+newstat: 4 times
+poll: 2 times
+mprotect: 4 times
+```
 
 #### Phase 2 - syzkaller format
 
 Goals:
 
-Split traces into programs by time.
+Split traces into programs by time and set resources.
 
 Rules:
 
@@ -134,19 +138,20 @@ Rules:
 
    ```
    [SEP]
-   openat$SyzLLM(-100, "/usr/lib/firefox/libXt.so.6", 524288, 0) ret = 23
-   read$SyzLLM(23, 1)
-   close$SyzLLM(12)
-   sendmsg$SyzLLM(55, 139820868476640, 16384)
+   openat$SyzLLM(-100, "/usr/lib/firefox/libXt.so.6", 524288, 0)
+   read$SyzLLM(openat$SyzLLM(-100, "/usr/lib/firefox/libXt.so.6", 524288, 0), 1)
+   close$SyzLLM(openat$SyzLLM(-100, "/usr/lib/firefox/libXt.so.6", 524288, 0))
+   sendmsg$SyzLLM(socket$SyzLLM(1, 524289, 0), 139820868476640, 16384)
    [SEP]
    ```
 
-2. Within every second there are average `3.3e7/180s=183,333` calls. I think the program size is a key factor to the model's performance. And I'd choose 100 as the size so we need to split programs every `1s/(183,333/100)=0.0005s=0.5ms`.
+2. Within every second there are average `3.3e7/180s=183,333` calls. I think the program size is a key factor to the model's performance. And if we choose 100 as the size so we need to split programs every `1s/(183,333/100)=0.0005s=0.5ms`.
 
-   - We should focus on the later stage of fuzzing where run larger programs than the initial stage like 10 to 20 calls per program.
-   - TODO: check the actual program size when syzkaller running 1e6 programs.
+   - We should focus on the later stage of fuzzing where run larger programs than the initial stage like 10 to 20 calls per program. But I found the program sizes have not much change compare with the initial stage and rare programs have more than 20 calls.
 
 3. We should search for resources by fd and return value and use resources to replace consumers's fd.
+
+   - some fd may mismatch.
 
 > Result: Google Drive (370k programs with avg size of 100 calls)
 
@@ -162,7 +167,7 @@ Rules:
 
    - The constants are meaningful (e.g. flag, mode) and we should retain and convert them to hex. 
    - Addresses are related to strings (e.g. path) and data structures (e.g. msg) and we can assign to them.
-   - Assign resources if not any match.
+   - Fallback: Assign resources if not any match.
 
 2. Target data:
 
