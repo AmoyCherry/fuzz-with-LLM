@@ -114,14 +114,14 @@ class SamplingMethod(Enum):
     #BEAM_SEARCH = 'beam_search'
 
 
-async def fill_mask(sequence,
+def fill_mask(sequence,
                     sampling_method=SamplingMethod.TOP_K,
                     temperature=1.0, top_k=25,
                     top_p=0.9,
                     beam_width=5, diversity_penalty=1.0):
     input_ids_tensor = tokenizer.tokenize_sequence(sequence, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(sequence) + 2)*2))
     input_ids = input_ids_tensor.data['input_ids']
-    mask_token_index = torch.where(input_ids == 182605)[1]
+    mask_token_index = torch.where(input_ids == 208925)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
     top_tokens = sample(mask_token_logits, sampling_method, temperature, top_k, top_p, beam_width, diversity_penalty)
 
@@ -365,7 +365,7 @@ def handle_cover():
 
 
 @app.route('/', methods=['POST'])
-async def handle_post_request():
+def handle_post_request():
     request_counter.count()
 
     syscall_json = request.get_json()
@@ -378,7 +378,7 @@ async def handle_post_request():
 
     #sequence = [CLS] + syscall_list + [SEP]
     sequence = syscall_list
-    next_syscalls = await fill_mask(sequence, sampling_method=sample_method_selector.current_sampling, temperature=0.7)
+    next_syscalls = fill_mask(sequence, sampling_method=sample_method_selector.current_sampling, temperature=0.7)
     # idx = pick(len(syscall_list))
     # response = {'State': 0, 'Syscall': next_syscalls[idx]}
 

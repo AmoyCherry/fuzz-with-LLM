@@ -8,8 +8,8 @@
   "selectedModel": "bert",
   "model": {
     "bert": {
-      "hidden_size": 64,
-      "num_attention_heads": 8,
+      "hidden_size": 128,
+      "num_attention_heads": 16,
       "num_hidden_layers": 6,
       "type_vocab_size": 1,
       "max_position_embeddings": 256
