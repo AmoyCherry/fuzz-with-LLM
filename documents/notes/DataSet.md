@@ -84,7 +84,7 @@ Rules:
    2. and its parameters 
    3. and its return value 
    4. and entry time 
-   5. and process name for resource locating;
+   5. and ~~process name~~ pid for resource locating;
 
 2. We will encounter entry trace first to get the syscall name and its parameters and entry time;
 
@@ -93,36 +93,50 @@ Rules:
 4. Target converted data should look like as follow.
 
    ```
-   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@ @Time@04:48:53.574837309@time@ @Proc@firefox@Proc@
+   openat @Param@{ dfd = -100, filename = "/usr/lib/firefox/libXt.so.6", flags = 524288, mode = 0 }@Param@ @Ret@{ ret = 57 }@Ret@ @Time@04:48:53.574837309@time@ @PID@1870@PID@
    
-   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@ @Time@04:48:53.579737309@Time@ @Proc@firefox@Proc@
+   read @Param@{ fd = 23, count = 1 }@Param@ @Ret@{ ret = 1, buf = 140723345741599 }@Ret@ @Time@04:48:53.579737309@Time@ @PID@1870@PID@
    
-   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@ @Time@04:48:53.974837309@Time@ @Proc@firefox@Proc@
+   close @Param@{ fd = 12 }@Param@ @Ret{ ret = 0 }@Ret@ @Time@04:48:53.974837309@Time@ @PID@1870@PID@
    
-   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@ @Time@04:49:00.574837309@Time@ @Proc@firefox@Proc@
+   sendmsg @Param@{ fd = 55, msg = 139820868476640, flags = 16384 }@Param@ @Ret@{ ret = 220 }@Ret@ @Time@04:49:00.574837309@Time@ @PID@1870@PID@
    ```
-
-> Result: [Google Drive](https://drive.google.com/file/d/1-3y6vE5qYoh2vJecphJzUpvj5PMSe_g1/view?usp=sharing)
 
 **Issue**
 
 The trace contains some long consecutive same calls.
 
 ```
-Consecutive calls greater than 100:
-madvise: 314 times
-newstat: 173 times
-futex: 2638 times
-read: 11 times
-poll: 4 times
-mprotect: 17 times
-rt: 1 times
+Consecutive calls greater than 20:
+mprotect: 1568 times
+read: 285 times
+futex: 23980 times
+madvise: 2714 times
+newlstat: 137 times
+rt: 483 times
+newstat: 1645 times
+close: 133 times
+recvmsg: 84 times
+poll: 54 times
+munmap: 100 times
+openat: 26 times
+newfstatat: 2 times
+
+Consecutive calls greater than 50:
+read: 85 times
+futex: 9041 times
+madvise: 1255 times
+mprotect: 182 times
+rt: 262 times
+newstat: 736 times
+poll: 20 times
+
 
 Consecutive calls greater than 500:
-madvise: 46 times
-futex: 1116 times
-newstat: 4 times
-poll: 2 times
+futex: 2720 times
+madvise: 97 times
+newstat: 6 times
+poll: 3 times
 mprotect: 4 times
 ```
 
@@ -145,15 +159,13 @@ Rules:
    [SEP]
    ```
 
-2. Within every second there are average `3.3e7/180s=183,333` calls. I think the program size is a key factor to the model's performance. And if we choose 100 as the size so we need to split programs every `1s/(183,333/100)=0.0005s=0.5ms`.
+2. Within every second there are average `3.3e7/180s=183,333` calls. I think the program size is a key factor to the model's performance. And if we choose `30` as the size so we need to split programs every `1s/(183,333/30)=0.00016s=0.16ms`.
 
    - We should focus on the later stage of fuzzing where run larger programs than the initial stage like 10 to 20 calls per program. But I found the program sizes have not much change compare with the initial stage and rare programs have more than 20 calls.
 
 3. We should search for resources by fd and return value and use resources to replace consumers's fd.
 
    - some fd may mismatch.
-
-> Result: Google Drive (370k programs with avg size of 100 calls)
 
 #### Phase 3 - training format
 
@@ -179,6 +191,22 @@ Rules:
    sendmsg$SyzLLM(@RSTART@socket$SyzLLM(0x1, 0x1, 0x1)@REND@, (0x7f000000f000)={&(0x7f000000f400)=nil, 0x1, &(0x7f000000f800)={&(0x7f000000fc00)=@newlink={0x1, 0x1, 0x401, 0x1, 0x1, {0x1, 0x1, 0x1}, [@IFLA_MASTER={0x8, 0x3}, @IFLA_LINKINFO={0x20, 0x12, 0x0, 0x1, @bond={{0x9}, {0x10, 0x2, 0x0, 0x1, [@IFLA_BOND_ARP_IP_TARGET={0x4}, @IFLA_BOND_ARP_INTERVAL={0x8, 0x7, 0x6}]}}}]}, 0x1}, 0x1, 0x1, 0x1, 0x0}, 0x4000)
    [SEP]
    ```
+
+#### Phase4 - Collect and assign addresses and struct values
+
+Goals:
+
+Collect addresses associated with their struct values from syzkaller's dataset and assign them to the new data set.
+
+Rules:
+
+1. Collect addresses from vocab.txt;
+   - Filter addresses that with res;
+   - Map: {call_name}$SyzLLM_{arg_len}[{addr_index}] = addr;
+2. Assign pointer values;
+   - Pointers have the tags in phase1.txt: `uaddr`, `addr`, `buf`, `buff`, `ubuf`, `arg`(not all)... 
+   - Consider all numbers that greater than `140000000000000` exclude `-1` are addresses.
+   - We should not assign pointer values to all where is address type, some addr are 0 also is meaningful. We only care about the addr above `140000000000000`.
 
 ## TwinDroid
 
