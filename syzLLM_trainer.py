@@ -178,7 +178,15 @@ class SyzLLMTrainer:
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
                 # process
-                outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+                try:
+                    outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+                except IndexError as e:
+                    print("An index out of range error occurred:")
+                    print(f"Error message: {e}")
+                    print(f"Input IDs: {input_ids}, length: {len(input_ids)}")
+                    print(f"Attention Mask: {attention_mask}, length: {len(attention_mask)}")
+                    print("Labels:", labels)
+
                 # extract loss
                 loss = outputs.loss
                 # calculate loss for every parameter that needs grad update
