@@ -1,4 +1,5 @@
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -116,13 +117,12 @@ class SyzLLMTrainer:
         self.device = None
 
     def setup_device(self):
-        # if torch.cuda.is_available():
-        #     self.device = torch.device('cuda')
-        # elif torch.backends.mps.is_available():
-        #     self.device = torch.device('mps')
-        # else:
-        #     self.device = torch.device('cpu')
-        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         print(f"Using device: {self.device}")
         # move our model over to the selected device
         self.model.to(self.device)
@@ -156,15 +156,15 @@ class SyzLLMTrainer:
 
     def train(self, train_loader, validation_loader):
         self.setup_device()
-        self.model.train()
 
-        optim = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
-
-        best_validation_loss = float('inf')  # Keep track of the best validation loss
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
 
         epochs = EPOCHS
 
         for epoch in range(epochs):
+            self.model.train()
+
             # setup loop with TQDM and dataloader
             writer = SummaryWriter()
             global_step = 0
@@ -172,27 +172,20 @@ class SyzLLMTrainer:
             loop = tqdm(train_loader, leave=True)
             for batch in loop:
                 # initialize calculated gradients (from prev step)
-                optim.zero_grad()
+                optimizer.zero_grad()
                 # pull all tensor batches required for training
                 input_ids = batch['input_ids'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
                 # process
-                try:
-                    outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
-                except IndexError as e:
-                    print("An index out of range error occurred:")
-                    print(f"Error message: {e}")
-                    print(f"Input IDs: {input_ids}, length: {len(input_ids)}")
-                    print(f"Attention Mask: {attention_mask}, length: {len(attention_mask)}")
-                    print("Labels:", labels)
+                outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
 
                 # extract loss
                 loss = outputs.loss
                 # calculate loss for every parameter that needs grad update
                 loss.backward()
                 # update parameters
-                optim.step()
+                optimizer.step()
                 # print relevant info to progress bar
                 loop.set_description(f'Epoch {epoch}')
                 loop.set_postfix(loss=loss.item())
@@ -202,9 +195,10 @@ class SyzLLMTrainer:
             self.model.save_pretrained(ModelPath + f"_{epoch}")
 
             # Validation Loop
-            if len(validation_loader) == 0:
+            if len(validation_loader) > 0:
                 validation_loss = self.validate(validation_loader, writer)
                 print(f"Validation loss for epoch {epoch}: {validation_loss}")
+                scheduler.step(validation_loss)
 
         print('training done')
 

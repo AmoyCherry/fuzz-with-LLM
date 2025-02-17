@@ -40,7 +40,7 @@ class SyzTokenizer:
     def tokenize_word(self, word: str):
         return self.tokenizer.convert_tokens_to_ids(word)
 
-    def tokenize_sequence(self, sequence: list[str], return_tensors=None, max_length_arg=1024):
+    def tokenize_sequence(self, sequence: list[str], return_tensors=None, max_length_arg=256):
         return self.tokenizer.encode_plus(sequence, is_split_into_words=False, max_length=max_length_arg, padding='max_length', truncation=True, return_tensors=return_tensors)
 
 
