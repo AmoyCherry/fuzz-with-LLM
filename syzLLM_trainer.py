@@ -63,26 +63,27 @@ def get_encodings_from_tokenfile(syzTokenizer: SyzTokenizer):
     for i in Path("./tokens/").glob('**/*.txt'):
         batch += syzTokenizer.get_sequence_batch(i)
     print("sequences size: ", len(batch))
+
     labels = torch.tensor([x.input_ids for x in batch])
-    mask = torch.tensor([x.attention_mask for x in batch])
+    attention_mask = torch.tensor([x.attention_mask for x in batch])
 
-    # make copy of labels tensor, this will be input_ids
     input_ids = labels.detach().clone()
-    # create random array of floats with equal dims to input_ids
-    rand = torch.rand(input_ids.shape)
-    # mask random 15% where token is not 0 [PAD], 1 [CLS], or 2 [SEP]
-    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * (input_ids != syzTokenizer.tokenizer.cls_token_id) * (input_ids != syzTokenizer.tokenizer.sep_token_id)
-    # loop through each row in input_ids tensor (cannot do in parallel)
-    for j in range(input_ids.shape[0]):
-        # get indices of mask positions from mask array
-        selection = torch.flatten(mask_arr[j].nonzero()).tolist()
-        temp = input_ids[j, selection]
-        # mask input_ids
-        input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id
-
     print(input_ids.shape)
+    rand = torch.rand(input_ids.shape)
+    mask_arr = (rand < .15) * (input_ids != syzTokenizer.tokenizer.pad_token_id) * \
+               (input_ids != syzTokenizer.tokenizer.cls_token_id) * \
+               (input_ids != syzTokenizer.tokenizer.sep_token_id)
 
-    encodings = {'input_ids': input_ids, 'attention_mask': mask, 'labels': labels}
+    labels = torch.full_like(input_ids, -100)
+
+    for j in range(input_ids.shape[0]):
+        selection = torch.flatten(mask_arr[j].nonzero()).tolist()
+        if selection:
+            original_tokens = input_ids[j, selection]
+            input_ids[j, selection] = syzTokenizer.tokenizer.mask_token_id
+            labels[j, selection] = original_tokens
+
+    encodings = {'input_ids': input_ids, 'attention_mask': attention_mask, 'labels': labels}
     return encodings
 
 
@@ -116,13 +117,12 @@ class SyzLLMTrainer:
         self.device = None
 
     def setup_device(self):
-        # if torch.cuda.is_available():
-        #     self.device = torch.device('cuda')
-        # elif torch.backends.mps.is_available():
-        #     self.device = torch.device('mps')
-        # else:
-        #     self.device = torch.device('cpu')
-        self.device = torch.device('cpu')
+        if torch.cuda.is_available():
+            self.device = torch.device('cuda')
+        elif torch.backends.mps.is_available():
+            self.device = torch.device('mps')
+        else:
+            self.device = torch.device('cpu')
         print(f"Using device: {self.device}")
         # move our model over to the selected device
         self.model.to(self.device)
