@@ -2,17 +2,17 @@
   "training": {
     "batch_size": 8,
     "epochs": 2,
-    "learning_rate": 2e-6,
+    "learning_rate": 2e-5,
     "validation_split_percentage": 0.15
   },
-  "selectedModel": "distilbert",
+  "selectedModel": "bert",
   "model": {
     "bert": {
       "hidden_size": 128,
       "num_attention_heads": 16,
       "num_hidden_layers": 6,
       "type_vocab_size": 1,
-      "max_position_embeddings": 1024
+      "max_position_embeddings": 256
     },
     "distilbert": {
       "dropout": 0.4,
