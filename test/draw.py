@@ -28,7 +28,8 @@ syzllm = ['syzllm-0319-1.txt',
           './temp/expt-res-sampling.txt',
           './temp/expt-res.txt',
           'expt-res.txt',
-          'expt-res-sampling-0817.txt'
+          'expt-res-sampling-0817.txt',
+          'expt-syzllm-1024.txt'
           ]
 
 
@@ -142,7 +143,7 @@ if __name__ == '__main__':
         #Line(syzllm[8], SyzLLM_pure_label),
         #Line(syzllm[13], SyzLLM_broken_label),
         Line(syzllm[18], SyzLLM_broken_label),
-        Line(syzllm[19], SyzLLM_pure_label)
+        Line(syzllm[20], SyzLLM_pure_label)
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
