@@ -40,11 +40,11 @@ wait4$SyzLLM(0x7c5, 0x3)""",
 """mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x1000, 0x1)
 getpid$SyzLLM()
 mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x1000, 0x1)
-openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)=nil, 0xa00c2, 0x180)
-openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)=nil, 0xa0000, 0x0)
-unlink$SyzLLM(&(0x7f0000022000)='./file0\x00')
-ftruncate$SyzLLM(@RSTART@openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)=nil, 0xa00c2, 0x180)@REND@, 0x661a0)
-mmap$SyzLLM(0x0, 0x661a0, 0x3, 0x1, @RSTART@openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)=nil, 0xa00c2, 0x180)@REND@, 0x0)
+openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)='./file0\x00', 0x0, 0x0)
+openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)='./file0\x00', 0xa00c2, 0x180)
+unlink$SyzLLM(&(0x7f0000064000)='./file0\x00')
+ftruncate$SyzLLM(@RSTART@openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)='./file0\x00', 0xa00c2, 0x180)@REND@, 0x661a0)
+mmap$SyzLLM(&(0x7f000001a000)=nil, 0x661a0, 0x3, 0x1, @RSTART@openat$SyzLLM(0xffffffffffffff9c, &(0x7f0000008000)='./file0\x00', 0xa00c2, 0x180)@REND@, 0x0)
 mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x8000, 0x1)
 [MASK]""",
             }
@@ -64,9 +64,9 @@ mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x8000, 0x1)
 
     @staticmethod
     def fill_mask_for_test(syscall_list):
-        input_ids_tensor = tokenizer.tokenize_sequence(syscall_list, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(syscall_list) + 2) * 2))
+        input_ids_tensor = tokenizer.tokenize_sequence(syscall_list, return_tensors="pt", max_length_arg=max(256, highest_power_of_2(len(syscall_list) + 2) * 2))
         input_ids = input_ids_tensor.data['input_ids']
-        mask_token_index = torch.where(input_ids == 196436)[1]
+        mask_token_index = torch.where(input_ids == 14558)[1]
         mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
 
         top_tokens = TestSyzllmServer.topk_for_test(mask_token_logits)
