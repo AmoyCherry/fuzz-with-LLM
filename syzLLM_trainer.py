@@ -10,7 +10,7 @@ from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
     VALIDATION_SPLIT_PERCENTAGE, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT, \
     Distil_MAX_POSITION_EMBEDDINGS, BERT_MAX_POSITION_EMBEDDINGS, HIDDEN_SIZE, NUM_ATTENTION_HEADS, NUM_HIDDEN_LAYERS, \
-    TYPE_VOCAB_SIZE, SELECTEDMODEL, BERT
+    TYPE_VOCAB_SIZE, SELECTEDMODEL, BERT, HIDDEN_DROPOUT_PROB, ATTENTION_PROBS_DROPOUT
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -98,7 +98,9 @@ class SyzLLMTrainer:
             hidden_size=HIDDEN_SIZE,
             num_attention_heads=NUM_ATTENTION_HEADS,
             num_hidden_layers=NUM_HIDDEN_LAYERS,
-            type_vocab_size=TYPE_VOCAB_SIZE
+            type_vocab_size=TYPE_VOCAB_SIZE,
+            hidden_dropout_prob=HIDDEN_DROPOUT_PROB,
+            attention_probs_dropout=ATTENTION_PROBS_DROPOUT,
         )
 
         distilbert_config = DistilBertConfig(
