@@ -13,8 +13,8 @@ CLS = "[CLS]"
 SEP = "[SEP]"
 UNK = "[UNK]"
 
-UNK_idx = 264749
-MASK_idx = 264750
+UNK_idx = 14555
+MASK_idx = 14558
 
 with open(ConfigPath) as config_file:
     config = json.load(config_file)
