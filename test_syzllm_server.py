@@ -54,6 +54,7 @@ mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x8000, 0x1)
             input_calls = test['input_calls']
             call_list = input_calls.split('\n')
             TestSyzllmServer.mock_server(call_list)
+            print('\n\n')
 
     @staticmethod
     def mock_server(syscall_list):
@@ -64,7 +65,7 @@ mprotect$SyzLLM(&(0x7f000003d000/0x1000)=nil, 0x8000, 0x1)
 
     @staticmethod
     def fill_mask_for_test(syscall_list):
-        input_ids_tensor = tokenizer.tokenize_sequence(syscall_list, return_tensors="pt", max_length_arg=max(256, highest_power_of_2(len(syscall_list) + 2) * 2))
+        input_ids_tensor = tokenizer.tokenize_sequence(syscall_list, return_tensors="pt", max_length_arg=max(128, highest_power_of_2(len(syscall_list) + 2) * 2))
         input_ids = input_ids_tensor.data['input_ids']
         mask_token_index = torch.where(input_ids == 14558)[1]
         mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
