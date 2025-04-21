@@ -126,9 +126,10 @@ def fill_mask(sequence,
     top_tokens = sample(mask_token_logits, sampling_method, temperature, top_k, top_p, beam_width, diversity_penalty)
 
     syscalls = []
+    exclude_calls = ["image", "[SEP]", "[CLS]", "[UNK]", "[MASK]", "[PAD]"]
     for token in top_tokens:
         call = tokenizer.decode([token])
-        if "image" in call:
+        if any(c in call for c in exclude_calls):
             continue
         syscalls.append(call)
 
