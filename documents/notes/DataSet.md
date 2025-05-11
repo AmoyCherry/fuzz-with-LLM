@@ -271,7 +271,7 @@ The dataset covers Linux kernels released in the last five years and includes a 
 execve|brk|arch_prctl|access|openat|newfstatat|mmap|close|openat|read|pread64|pread64|pread64|newfstatat|mmap|pread64|mmap|mmap|mmap|mmap|mmap|close|mmap|arch_prctl|mprotect|mprotect|mprotect|munmap|mmap|clone|wait4|prctl|clock_nanosleep|setpgid|openat|ioctl|close|close|close|close|close|close|close|close|close|close|close|wait4|close|clock_nanosleep|close|close|close|close|close|close|close|close|close|close|close|close|wait4|close|clock_nanosleep|close|close|exit_group|wait4|clone|wait4|prctl|clock_nanosleep|setpgid|openat|ioctl|close|close|close|close|close|close|close|close|close|close|close|wait4|
 ```
 
-## SysCall Dataset: A Dataset for Context Modeling and Anomaly Detection using System Calls
+## SysCall Dataset: A Dataset for Context Modeling and Anomaly Detection using System Calls ❌
 
 > [Dataset](https://data.mendeley.com/datasets/vfvw7g8s8h/2)
 >
