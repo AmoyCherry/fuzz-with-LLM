@@ -20,7 +20,7 @@ We may need a filter for this dataset to adjust the massive number of `clock_get
 0.000096 writev(3, [{"\x04", 1}, {"\x00", 1}, {"org.json.JSONException: End of i"..., 56}], 3) = 58 <0.000020>
 ```
 
-## On Improving Deep Learning Trace Analysis with System Call Arguments ✅
+## On Improving Deep Learning Trace Analysis with System Call Arguments ✅ Used
 
 > [Dataset 1](https://zenodo.org/records/4091287#.X4hhGNjpNQI) (generated)
 >
@@ -235,7 +235,7 @@ This dataset contains syscalls with args in separated traces.
 1607111369.447466 ioctl(9, 0xc0186201, 0xbffe9168) = 0
 ```
 
-## SNIA-IOTTA
+## SNIA-IOTTA ❌
 
 > [Dataset](https://iotta.snia.org/traces/system-call)
 >
