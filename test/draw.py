@@ -28,7 +28,8 @@ syzllm = ['syzllm-0319-1.txt',
           './temp/expt-res-sampling.txt',
           './temp/expt-res.txt',
           'expt-res.txt',
-          'expt-res-sampling-0817.txt'
+          'expt-res-sampling-0817.txt',
+          'expt-syzllm-diverse-22M-0513.txt',
           ]
 
 
@@ -36,12 +37,14 @@ SyzLLM_label = 'SyzLLM'
 SyzLLM_broken_label = 'ResInline'
 SyzLLM_pure_label = 'ResInline-SamplingSelector'
 syzkaller_label = 'Syzkaller'
+diverse = 'SyzLLM-Diverse-22M'
 
 color_map = {
     SyzLLM_label: 'r--',
     syzkaller_label: 'g--',
     SyzLLM_broken_label: 'b--',
-    SyzLLM_pure_label: 'k-'
+    SyzLLM_pure_label: 'k-',
+    diverse: 'c-',
 }
 
 
@@ -141,8 +144,9 @@ if __name__ == '__main__':
         Line(syzllm[7], SyzLLM_label),
         #Line(syzllm[8], SyzLLM_pure_label),
         #Line(syzllm[13], SyzLLM_broken_label),
-        Line(syzllm[18], SyzLLM_broken_label),
-        Line(syzllm[19], SyzLLM_pure_label)
+        #Line(syzllm[18], SyzLLM_broken_label),
+        #Line(syzllm[19], SyzLLM_pure_label),
+        Line(syzllm[20], diverse)
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
