@@ -8,7 +8,7 @@ def split_file(input_file, output_prefix, programs_per_file):
         current_program = []
         output = open(f"{output_prefix}_{current_file}.txt", 'w')
 
-        excluded_tokens = ['[UNK]', 'MASK', 'CLS', 'PAD']
+        excluded_tokens = ['[UNK]', '[MASK]', '[CLS]', '[PAD]']
         for line in f:
             if any(token in line for token in excluded_tokens):
                 continue
