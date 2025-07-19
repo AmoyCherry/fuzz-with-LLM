@@ -30,6 +30,10 @@ syzllm = ['syzllm-0319-1.txt',
           'expt-res.txt',
           'expt-res-sampling-0817.txt',
           'expt-syzllm-diverse-22M-0513.txt',
+          'eval-syzkaller.txt',
+          'eval-syzllm.txt',
+          'eval-syzkaller-noreproduce-40h.txt',
+          'eval-syzllm-no-reproduce.txt',
           ]
 
 
@@ -50,31 +54,35 @@ color_map = {
 
 def calculate_time_differences(file_path):
     times = []
+    days = []
     with open(file_path, 'r') as file:
         for line in file:
-            if 'cover' in line and 'executed' in line:
+            if 'coverage' in line and 'candidates' in line:
                 time_match = re.search(r'\d{2}:\d{2}:\d{2}', line)
-                if time_match:
+                day_match = re.search(r'\d{4}/\d{2}/\d{2}', line)
+                if time_match and day_match:
                     times.append(time_match.group())
+                    days.append(day_match.group())
 
     time_diffs = [0.0]
     first_time = times[0]
-    for time in times[1:]:
-        time_diff = calculate_time_difference(first_time, time)
+    for i in range(1, len(times)):
+        time_diff = calculate_time_difference(first_time, days[0], times[i], days[i])
         time_diffs.append(time_diff)
 
     time_diffs = [time/3600 for time in time_diffs]
     return time_diffs
 
 
-def calculate_time_difference(time1, time2):
+def calculate_time_difference(time1, first_day, time2, time2_day):
     h1, m1, s1 = map(int, time1.split(':'))
     h2, m2, s2 = map(int, time2.split(':'))
-    if h2 < h1:
-        h2 += 24
+    y1, m1, d1 = map(int, first_day.split('/'))
+    y2, m2, d2 = map(int, time2_day.split('/'))
 
-    total_seconds1 = h1 * 3600 + m1 * 60 + s1
-    total_seconds2 = h2 * 3600 + m2 * 60 + s2
+
+    total_seconds1 = d1 * 3600 * 24 + h1 * 3600 + m1 * 60 + s1
+    total_seconds2 = d2 * 3600 * 24 + h2 * 3600 + m2 * 60 + s2
 
     time_diff = total_seconds2 - total_seconds1
 
@@ -85,7 +93,7 @@ def extract_coverage(file_path):
     covers = []
     with open(file_path, 'r') as file:
         for line in file:
-            match = re.search(r'cover\s+(\d+),', line)
+            match = re.search(r' coverage=(\d+) ', line)
             if match:
                 cover = int(match.group(1))
                 covers.append(cover)
@@ -96,7 +104,7 @@ def extract_execute(file_path):
     covers = []
     with open(file_path, 'r') as file:
         for line in file:
-            match = re.search(r'executed\s+(\d+),', line)
+            match = re.search(r' total=(\d+) ', line)
             if match:
                 cover = int(match.group(1))
                 covers.append(cover)
@@ -140,13 +148,14 @@ if __name__ == '__main__':
         #Line(table_path[0], choiceTable_label),
         #Line(table_path[1], choiceTable_label),
         #Line(table_path[2], choiceTable_label),
-        Line(syzkaller[1], syzkaller_label),
-        Line(syzllm[7], SyzLLM_label),
+        #Line(syzkaller[1], syzkaller_label),
+        #Line(syzllm[23], syzkaller_label),
         #Line(syzllm[8], SyzLLM_pure_label),
         #Line(syzllm[13], SyzLLM_broken_label),
         #Line(syzllm[18], SyzLLM_broken_label),
         #Line(syzllm[19], SyzLLM_pure_label),
-        Line(syzllm[20], diverse)
+        Line(syzllm[23], syzkaller_label),
+        Line(syzllm[24], SyzLLM_label),
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
