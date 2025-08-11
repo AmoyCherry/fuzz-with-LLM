@@ -34,6 +34,12 @@ syzllm = ['syzllm-0319-1.txt',
           'eval-syzllm.txt',
           'eval-syzkaller-noreproduce-40h.txt',
           'eval-syzllm-no-reproduce.txt',
+          'logs/ripple-syzkaller.txt', # 25
+          'logs/ripple-syzllm.txt', # 26
+          'logs/ripple-syzkaller-48h.txt', # 27
+          'logs/ripple-syzllm-48h.txt', # 28
+          'logs/logs-vanilla-syzkaller-0810.txt', # 29
+          'logs/logs-syzllm-0810.txt', # 30
           ]
 
 
@@ -154,8 +160,8 @@ if __name__ == '__main__':
         #Line(syzllm[13], SyzLLM_broken_label),
         #Line(syzllm[18], SyzLLM_broken_label),
         #Line(syzllm[19], SyzLLM_pure_label),
-        Line(syzllm[23], syzkaller_label),
-        Line(syzllm[24], SyzLLM_label),
+        Line(syzllm[29], syzkaller_label),
+        Line(syzllm[30], SyzLLM_label),
         #Line(syzllm[6], SyzLLM_pure_label),
         #Line(syzllm[5], SyzLLM_broken_label),
         #Line(syzllm[2], SyzLLM_pure_label)
