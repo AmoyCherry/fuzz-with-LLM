@@ -40,20 +40,26 @@ syzllm = ['syzllm-0319-1.txt',
           'logs/ripple-syzllm-48h.txt', # 28
           'logs/logs-vanilla-syzkaller-0810.txt', # 29
           'logs/logs-syzllm-0810.txt', # 30
+          'logs/logs-syzkaller-no-seeds.txt', # 31
+          'logs/logs-syzllm-no-seeds.txt', # 32
+          'logs/logs-optimizer.txt', # 33
+          'logs/logs-optimizer-reduce-09-05-2h-001.txt', # 34
+          'logs/logs-optimizer-reduce-09-08-3h-025.txt', # 35
+          'logs/logs-optimizer-03.txt', # 36
           ]
 
 
-SyzLLM_label = 'SyzLLM'
-SyzLLM_broken_label = 'ResInline'
-SyzLLM_pure_label = 'ResInline-SamplingSelector'
+SyzLLM_label = 'SyzLLM-no-opt'
+SyzLLM_optimizer_reduce_label = 'SyzLLM'
+SyzLLM_optimizer_label = 'SyzLLM-optimizer'
 syzkaller_label = 'Syzkaller'
 diverse = 'SyzLLM-Diverse-22M'
 
 color_map = {
-    SyzLLM_label: 'r--',
+    SyzLLM_label: 'b-.',
     syzkaller_label: 'g--',
-    SyzLLM_broken_label: 'b--',
-    SyzLLM_pure_label: 'k-',
+    SyzLLM_optimizer_reduce_label: 'r',
+    SyzLLM_optimizer_label: 'k-',
     diverse: 'c-',
 }
 
@@ -81,18 +87,16 @@ def calculate_time_differences(file_path):
 
 
 def calculate_time_difference(time1, first_day, time2, time2_day):
-    h1, m1, s1 = map(int, time1.split(':'))
-    h2, m2, s2 = map(int, time2.split(':'))
-    y1, m1, d1 = map(int, first_day.split('/'))
-    y2, m2, d2 = map(int, time2_day.split('/'))
+    y1, mon1, d1 = map(int, first_day.split('/'))
+    h1, min1, s1 = map(int, time1.split(':'))
+    dt1 = datetime.datetime(y1, mon1, d1, h1, min1, s1)
 
+    y2, mon2, d2 = map(int, time2_day.split('/'))
+    h2, min2, s2 = map(int, time2.split(':'))
+    dt2 = datetime.datetime(y2, mon2, d2, h2, min2, s2)
 
-    total_seconds1 = d1 * 3600 * 24 + h1 * 3600 + m1 * 60 + s1
-    total_seconds2 = d2 * 3600 * 24 + h2 * 3600 + m2 * 60 + s2
-
-    time_diff = total_seconds2 - total_seconds1
-
-    return time_diff
+    diff = dt2 - dt1
+    return diff.total_seconds()
 
 
 def extract_coverage(file_path):
@@ -125,24 +129,30 @@ class Line(object):
         self.label = label
 
 
-def draw_lines_time(lines):
+def draw_lines_time(lines, save_path='coverage_vs_time.pdf'):
+    fig, ax = plt.subplots()
     for line in lines:
-        plt.plot(line.X_time, line.Y, color_map[line.label], label=line.label)
+        ax.plot(line.X_time, line.Y, color_map[line.label], label=line.label)
 
-    plt.xlabel('time /hours')
-    plt.ylabel('coverage')
-    plt.legend()
+    ax.set_xlabel('time(hours)', fontsize=13)
+    ax.set_ylabel('branches coverage', fontsize=13)
+    ax.legend(loc='lower right', fontsize=16)
+    plt.savefig(save_path, format='pdf', bbox_inches='tight', dpi=300)
     plt.show()
+    plt.close(fig)  # Close the figure to free memory
 
 
-def draw_lines_execute(lines):
+def draw_lines_execute(lines, save_path='coverage_vs_executions.pdf'):
+    fig, ax = plt.subplots()
     for line in lines:
-        plt.plot(line.X_execute, line.Y, color_map[line.label], label=line.label)
+        ax.plot(line.X_execute, line.Y, color_map[line.label], label=line.label)
 
-    plt.xlabel('executed programs')
-    plt.ylabel('coverage')
-    plt.legend()
+    ax.set_xlabel('executed programs', fontsize=13)
+    ax.set_ylabel('branches coverage', fontsize=13)
+    ax.legend(loc='lower right', fontsize=16)
+    plt.savefig(save_path, format='pdf', bbox_inches='tight', dpi=300)
     plt.show()
+    plt.close(fig)  # Close the figure to free memory
 
 
 if __name__ == '__main__':
@@ -160,10 +170,10 @@ if __name__ == '__main__':
         #Line(syzllm[13], SyzLLM_broken_label),
         #Line(syzllm[18], SyzLLM_broken_label),
         #Line(syzllm[19], SyzLLM_pure_label),
-        Line(syzllm[29], syzkaller_label),
-        Line(syzllm[30], SyzLLM_label),
-        #Line(syzllm[6], SyzLLM_pure_label),
-        #Line(syzllm[5], SyzLLM_broken_label),
+        Line(syzllm[27], syzkaller_label),
+        #Line(syzllm[28], SyzLLM_label),
+        #Line(syzllm[35], SyzLLM_optimizer_label),
+        Line(syzllm[36], SyzLLM_optimizer_reduce_label),
         #Line(syzllm[2], SyzLLM_pure_label)
     ]
 
