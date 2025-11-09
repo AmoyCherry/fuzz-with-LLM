@@ -124,7 +124,7 @@ def fill_mask(sequence,
     mask_token_index = torch.where(input_ids == 11243)[1]
     mask_token_logits = mask_model(input_ids).logits[0, mask_token_index, :]
     #top_tokens = sample(mask_token_logits, sampling_method, temperature, top_k, top_p, beam_width, diversity_penalty)
-    top_tokens = sample_with_temperature(mask_token_logits, temperature)
+    top_tokens = sample_with_top_p(mask_token_logits, top_p)
 
     syscalls = []
     exclude_calls = ["image", "[SEP]", "[CLS]", "[UNK]", "[MASK]", "[PAD]"]
