@@ -1,4 +1,5 @@
 import torch
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import random_split
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
@@ -9,7 +10,7 @@ from syz_tokenizer import SyzTokenizer
 from utils import ModelPath, BATCH_SIZE, NUM_WORKERS, PREFETCH_FACTOR, EPOCHS, LEARNING_RATE, \
     VALIDATION_SPLIT_PERCENTAGE, DROPOUT, ATTENTION_DROPOUT, QA_DROPOUT, \
     Distil_MAX_POSITION_EMBEDDINGS, BERT_MAX_POSITION_EMBEDDINGS, HIDDEN_SIZE, NUM_ATTENTION_HEADS, NUM_HIDDEN_LAYERS, \
-    TYPE_VOCAB_SIZE, SELECTEDMODEL, BERT
+    TYPE_VOCAB_SIZE, SELECTEDMODEL, BERT, HIDDEN_DROPOUT_PROB, ATTENTION_PROBS_DROPOUT_PROB
 
 
 class Dataset(torch.utils.data.Dataset):
@@ -97,7 +98,9 @@ class SyzLLMTrainer:
             hidden_size=HIDDEN_SIZE,
             num_attention_heads=NUM_ATTENTION_HEADS,
             num_hidden_layers=NUM_HIDDEN_LAYERS,
-            type_vocab_size=TYPE_VOCAB_SIZE
+            type_vocab_size=TYPE_VOCAB_SIZE,
+            hidden_dropout_prob=HIDDEN_DROPOUT_PROB,
+            attention_probs_dropout_prob=ATTENTION_PROBS_DROPOUT_PROB,
         )
 
         distilbert_config = DistilBertConfig(
@@ -156,15 +159,15 @@ class SyzLLMTrainer:
 
     def train(self, train_loader, validation_loader):
         self.setup_device()
-        self.model.train()
 
-        optim = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
-
-        best_validation_loss = float('inf')  # Keep track of the best validation loss
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=LEARNING_RATE)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=2, verbose=True)
 
         epochs = EPOCHS
 
         for epoch in range(epochs):
+            self.model.train()
+
             # setup loop with TQDM and dataloader
             writer = SummaryWriter()
             global_step = 0
@@ -172,19 +175,20 @@ class SyzLLMTrainer:
             loop = tqdm(train_loader, leave=True)
             for batch in loop:
                 # initialize calculated gradients (from prev step)
-                optim.zero_grad()
+                optimizer.zero_grad()
                 # pull all tensor batches required for training
                 input_ids = batch['input_ids'].to(self.device)
                 attention_mask = batch['attention_mask'].to(self.device)
                 labels = batch['labels'].to(self.device)
                 # process
                 outputs = self.model(input_ids, attention_mask=attention_mask, labels=labels)
+
                 # extract loss
                 loss = outputs.loss
                 # calculate loss for every parameter that needs grad update
                 loss.backward()
                 # update parameters
-                optim.step()
+                optimizer.step()
                 # print relevant info to progress bar
                 loop.set_description(f'Epoch {epoch}')
                 loop.set_postfix(loss=loss.item())
@@ -194,9 +198,10 @@ class SyzLLMTrainer:
             self.model.save_pretrained(ModelPath + f"_{epoch}")
 
             # Validation Loop
-            if len(validation_loader) == 0:
+            if len(validation_loader) > 0:
                 validation_loss = self.validate(validation_loader, writer)
                 print(f"Validation loss for epoch {epoch}: {validation_loss}")
+                scheduler.step(validation_loss)
 
         print('training done')
 

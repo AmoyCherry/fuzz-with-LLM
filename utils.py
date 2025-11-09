@@ -13,8 +13,8 @@ CLS = "[CLS]"
 SEP = "[SEP]"
 UNK = "[UNK]"
 
-UNK_idx = 264749
-MASK_idx = 264750
+UNK_idx = 14555
+MASK_idx = 14558
 
 with open(ConfigPath) as config_file:
     config = json.load(config_file)
@@ -33,6 +33,8 @@ NUM_ATTENTION_HEADS = config["model"]["bert"]["num_attention_heads"]
 NUM_HIDDEN_LAYERS = config["model"]["bert"]["num_hidden_layers"]
 TYPE_VOCAB_SIZE = config["model"]["bert"]["type_vocab_size"]
 BERT_MAX_POSITION_EMBEDDINGS = config["model"]["bert"]["max_position_embeddings"]
+HIDDEN_DROPOUT_PROB = config["model"]["bert"]["hidden_dropout_prob"]
+ATTENTION_PROBS_DROPOUT_PROB = config["model"]["bert"]["attention_probs_dropout_prob"]
 # model.distilbert
 Distil_MAX_POSITION_EMBEDDINGS = config["model"]["distilbert"]["max_position_embeddings"]
 DROPOUT = config["model"]["distilbert"]["dropout"]
